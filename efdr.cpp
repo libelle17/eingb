@@ -443,7 +443,6 @@ chtstr::chtstr(const char *string, int *to, int *align, const int highinr/*=0*/)
 	return /*result*/;
 } // chtstr::chtstr(const char *string, int *to, int *align, const int highinr/*=0*/)
 
-#ifdef pneu
 /*
  * This returns a pointer to char * of a chtype *
  * Formatting codes are omitted.
@@ -462,39 +461,6 @@ char *chtstr::chtype2Char()
 	}
 	return ch;
 }
-#else
-/*
- * This returns a pointer to char * of a chtype *
- * Formatting codes are omitted.
- */
-char *chtype2Char(const chtype *string)
-{
-	char *newstring = 0;
-	if (string) {
-		int len = chlen(string);
-		if ((newstring = typeMallocN(char, len + 1))) {
-			for (int x = 0; x < len; x++) {
-				newstring[x] =(char)(unsigned char)string[x];
-			}
-			newstring[len] = '\0';
-		}
-	}
-	return (newstring);
-}
-
-/*
- * Count the number of items in a list of strings.
- */
-unsigned CDKcountStrings(CDK_CSTRING2 list)
-{
-	unsigned result = 0;
-	if (list) {
-		while (*list++)
-			result++;
-	}
-	return result;
-}
-#endif
 
 
 /*
@@ -536,36 +502,6 @@ int justifyString(int boxWidth, int mesgLength, int justify)
 	if (justify == CENTER)
 		return ((int)((boxWidth - mesgLength) / 2));
 	return (justify);
-}
-
-//#ifdef pneu
-//#else
-/*
- * Free a list of strings, terminated by a null pointer.
- */
-void CDKfreeStrings(char **list)
-{
-	if (list) {
-		void *base =(void *)list;
-		while (*list)
-			free(*list++);
-		free(base);
-	}
-}
-//#endif
-
-/*
- * Free a list of chtype-strings, terminated by a null pointer.
- */
-void CDKfreeChtypes(chtype **list)
-{
-	if (list) {
-		void *base = (void *)list;
-		while (*list) {
-			freeChtype(*list++);
-		}
-		free(base);
-	}
 }
 
 /*
@@ -810,38 +746,6 @@ void refreshCDKWindow(WINDOW *win)
    wrefresh(win);
 }
 
-#ifdef pneu
-#else
-/*
- * This performs a safe copy of a string. This means it adds the null
- * terminator on the end of the string, like strdup().
- */
-char *copyChar(const char *original)
-{
-	char *newstring = 0;
-	if (original) {
-		if ((newstring = typeMallocN(char, strlen(original) + 1)))
-			strcpy(newstring, original);
-	}
-	return (newstring);
-}
-
-chtype *copyChtype(const chtype *original)
-{
-	chtype *newstring = 0;
-	if (original) {
-		int len = chlen(original);
-		if ((newstring = typeMallocN(chtype, len + 4))) {
-			for (int x = 0; x < len; x++) {
-				newstring[x] = original[x];
-			}
-			newstring[len] = '\0';
-			newstring[len + 1] = '\0';
-		}
-	}
-	return (newstring);
-}
-#endif
 
 /*
  * This safely erases a given window.
@@ -899,20 +803,13 @@ void sortList(CDK_CSTRING *list, int length)
 /*
  * This looks for a subset of a word in the given list.
  */
-int searchList(
-#ifdef pneu
-		vector<string> *plistp,
-#else
-		CDK_CSTRING2 list, int listSize, 
-#endif
-		const char *pattern)
+int searchList(vector<string> *plistp, const char *pattern)
 {
 	int Index = -1;
 	/* Make sure the pattern isn't null. */
 	if (pattern) {
 		size_t len = strlen(pattern);
 		/* Cycle through the list looking for the word. */
-#ifdef pneu
 		int x=0;
 		for(vector<string>::const_iterator it0=plistp->begin();it0!=plistp->end();++x,++it0) {
 			const int ret{strncmp(it0->c_str(),pattern,len)};
@@ -923,27 +820,6 @@ int searchList(
 				break;
 			}
 		}
-#else
-	for (int x = 0; x < listSize; x++) {
-		/* Do a string compare. */
-		int ret = strncmp(list[x], pattern, len);
-		/*
-		 * If 'ret' is less than 0, then the current word is alphabetically
-		 * less than the provided word.  At this point we will set the index
-		 * to the current position.  If 'ret' is greater than 0, then the
-		 * current word is alphabetically greater than the given word.  We
-		 * should return with index, which might contain the last best match. 
-			 * If they are equal, then we've found it.
-			 */
-			if (ret < 0) {
-				Index = ret;
-			} else {
-				if (!ret)
-					Index = x;
-				break;
-			}
-		}
-#endif
 	}
 	return Index;
 }
@@ -952,42 +828,10 @@ int searchList(
  * Add a new string to a list.  Keep a null pointer on the end so we can use
  * CDKfreeStrings() to deallocate the whole list.
  */
-#ifdef pneu
 void
-#else
-unsigned 
-#endif
-CDKallocStrings(
-#ifdef pneu
-		vector<string> *plistp,
-#else
-		char ***list, 
-#endif
-		char *item
-#ifdef pneu
-#else
-		, unsigned length, unsigned used
-#endif
-		)
+CDKallocStrings(vector<string> *plistp, char *item)
 {
-#ifdef pneu
 	plistp->push_back(string(item));
-#else
-	unsigned need = 1;
-	while (need < length + 2)
-		need *= 2;
-	if (need > used) {
-		used = need;
-		if (!*list) {
-			*list = typeMallocN(char *, used);
-		} else {
-			*list = typeReallocN(char *, *list, used);
-		}
-	}
-	(*list)[length++] = copyChar(item);
-	(*list)[length] = 0;
-	return used;
-#endif
 }
 
 /*
@@ -996,18 +840,8 @@ CDKallocStrings(
 void writeBlanks(WINDOW *window, int xpos, int ypos, int align, int start, int end)
 {
 	if (start < end) {
-#ifdef pneu
 		string blanks(end-start+1000,' ');
 		writeChar(window, xpos, ypos, blanks.c_str(), align, start, end);
-#else
-		unsigned want =(unsigned)(end - start) + 1000;
-		char *blanks =(char *)malloc(want);
-		if (blanks) {
-			cleanChar(blanks,(int)(want - 1), ' ');
-			writeChar(window, xpos, ypos, blanks, align, start, end);
-			freeChecked(blanks);
-		}
-#endif
 	}
 }
 
@@ -1189,23 +1023,6 @@ static bool checkMenuKey(int keyCode, int functionKey)
 }
 // aus cdk.c:
 
-#ifdef pneu
-#else
-/*
- * Copy the given lists.
- */
-char **copyCharList(const char **list)
-{
-	size_t size =(size_t) lenCharList(list) + 1;
-	char **result = typeMallocN(char *, size);
-	if (result) {
-		unsigned n;
-		for (n = 0; n < size; ++n)
-			result[n] = copyChar(list[n]);
-	}
-	return result;
-}
-#endif
 
 /*
  * Return the length of the given lists.
@@ -1539,21 +1356,9 @@ CDKOBJS* switchFocus(CDKOBJS *newobj, CDKOBJS *oldobj)
  */
 void CDKOBJS::registerCDKObject(SScreen *screen, EObjectType cdktype)
 {
-#ifdef pneu
-#else
-	if (screen->objectCount + 1 >= screen->objectLimit) {
-		screen->objectLimit += 2;
-		screen->objectLimit *= 2;
-		screen->object = typeReallocN(CDKOBJS *, screen->object, screen->objectLimit);
-	}
-#endif
 	if (validObjType(cdktype)) {
-#ifdef pneu
 		setScreenIndex(screen);
 		screen->objectCount++;
-#else
-		setScreenIndex(screen, screen->objectCount++);
-#endif
 	}
 }
 
@@ -1572,12 +1377,7 @@ void CDKOBJS::reRegisterCDKObject(EObjectType cdktype/*, void *object*/)
 void SScreen::swapCDKIndices(/*SScreen *screen, */int n1, int n2)
 {
 	if (n1 != n2 && validIndex(n1) && validIndex(n2)) {
-#ifdef pneu
 		iter_swap(object.begin()+n1,object.begin()+n2);
-#else
-		object[n2]->setScreenIndex(this, n1);
-		object[n1]->setScreenIndex(this, n2);
-#endif
 		if (this->objectFocus == n1)
 			this->objectFocus = n2;
 		else if (this->objectFocus == n2)
@@ -1639,7 +1439,6 @@ void CDKOBJS::setExitType(chtype ch)
 /*
  * Set indices so the screen and object point to each other.
  */
-#ifdef pneu
 // etwas andere Funktionalität
 void CDKOBJS::setScreenIndex(SScreen *pscreen)
 {
@@ -1647,14 +1446,6 @@ void CDKOBJS::setScreenIndex(SScreen *pscreen)
 	screen->object.push_back(this);
 	screenIndex=screen->object.size();
 }
-#else
-void CDKOBJS::setScreenIndex(SScreen *pscreen, int number/*, CDKOBJS *obj*/)
-{
-	screenIndex = number;
-	screen = pscreen;
-	screen->object[number] = this;
-}
-#endif
 
 
 /*
@@ -1717,28 +1508,8 @@ void CDKOBJS::unregisterCDKObject(EObjectType cdktype/*, void *object*/)
 		if (screen) {
 			int Index = (this)->screenIndex;
 			this->screenIndex = -1;
-#ifdef pneu
 			screen->object.erase(screen->object.begin()+screenIndex);
 			if (--screen->objectCount>0) {
-#else
-			/*
-			 * Resequence the objects.
-			 */
-			for (int x = Index; x < screen->objectCount - 1; x++) {
-				screen->object[x+1]->setScreenIndex(screen, x/*, screen->object[x + 1]*/);
-			}
-			if (screen->objectCount <= 1) {
-				/* if no more objects, remove the array */
-				freeAndNull(screen->object);
-				screen->objectCount = 0;
-				screen->objectLimit = 0;
-			} else {
-				/* Reduce the list by one object. */
-				screen->object[screen->objectCount--] = 0;
-				/*
-				 * Update the object-focus
-				 */
-#endif
 				if (screen->objectFocus == Index) {
 					screen->objectFocus--;
 					screen->setCDKFocusNext();
@@ -1757,18 +1528,10 @@ void SScroll::resequence(/*SScroll *scrollp*/)
 {
 	if (/*scrollp->*/numbers) {
 		int j{0};
-#ifdef pneu
 		for(piter=pitem.begin();piter!=pitem.end();++j,piter++) {
-#else
-		for (; j < /*scrollp->*/listSize; ++j) {
-#endif
 			char source[80];
 			chtype *target =  // eigentlich const chtype *target
-#ifdef pneu
 				piter->getinh();
-#else
-				/*scrollp->*/sitem[j];
-#endif
 			sprintf(source, NUMBER_FMT, j + 1, "");
 			for (int k = 0; source[k]; ++k) {
 				/* handle deletions that change the length of number */
@@ -1785,18 +1548,6 @@ void SScroll::resequence(/*SScroll *scrollp*/)
 	}
 }
 
-#ifdef pneu
-#else
-bool SScroll::insertListItem(/*SScroll *scrollp, */int inr)
-{
-	for (int x = /*scrollp->*/listSize; x > inr; --x) {
-		/*scrollp->*/sitem[x] = /*scrollp->*/sitem[x - 1];
-		/*scrollp->*/itemLen[x] = /*scrollp->*/itemLen[x - 1];
-		/*scrollp->*/itemPos[x] = /*scrollp->*/itemPos[x - 1];
-	}
-	return TRUE;
-}
-#endif
 
 /*
  * This adds a single item to a scrolling list, at the end of the list.
@@ -1809,39 +1560,17 @@ void SScroll::addCDKScrollItem(/*SScroll *scrollp,*/ const char *item)
 {
    int itemNumber = /*scrollp->*/ listSize ;
    int widestItem = WidestItem(/*scrollp*//*this*/);
-#ifdef pneu
-#else
-   char *temp = 0;
-   size_t have = 0;
-#endif
    if (
-#ifdef pneu
-#else
-			 allocListArrays(/*scrollp, *//*scrollp->*/listSize, /*scrollp->*/listSize + 1) &&
-#endif
        allocListItem(/*scrollp,*/
 		      itemNumber,
-#ifdef pneu
-#else
-		      &temp,
-		      &have,
-#endif
 		      /*scrollp->*/numbers ?(itemNumber + 1) : 0,
 		      item)) {
       /* Determine the size of the widest item. */
       widestItem = MAXIMUM(/*scrollp->*/itemLen[itemNumber], widestItem);
       updateViewWidth(/*scrollp, */widestItem);
       setViewSize(/*scrollp, *//*scrollp->*/ listSize 
-#ifdef pneu
-#else
-					+ 1
-#endif
 					);
    }
-#ifdef pneu
-#else
-   freeChecked(temp);
-#endif
 }
 
 /*
@@ -1850,24 +1579,9 @@ void SScroll::addCDKScrollItem(/*SScroll *scrollp,*/ const char *item)
 void SScroll::insertCDKScrollItem(/*SScroll *scrollp, */const char *item)
 {
 	int widestItem = WidestItem(/*scrollp*//*this*/);
-#ifdef pneu
-#else
-	char *temp = 0;
-	size_t have = 0;
-#endif
 	if (
-#ifdef pneu
-#else
-			allocListArrays(/*scrollp, *//*scrollp->*/listSize, /*scrollp->*/listSize + 1) &&
-			insertListItem(/*scrollp, *//*scrollp->*/currentItem) &&
-#endif
 			allocListItem(/*scrollp,*/
 				/*scrollp->*/currentItem,
-#ifdef pneu
-#else
-				&temp,
-				&have,
-#endif
 				/*scrollp->*/numbers ?(/*scrollp->*/currentItem + 1) : 0,
 				item))
 	{
@@ -1875,17 +1589,9 @@ void SScroll::insertCDKScrollItem(/*SScroll *scrollp, */const char *item)
 		widestItem = MAXIMUM(/*scrollp->*/itemLen[/*scrollp->*/currentItem], widestItem);
 		updateViewWidth(/*scrollp, */widestItem);
 		setViewSize(/*scrollp, *//*scrollp->*/ listSize 
-#ifdef pneu
-#else
-					+ 1
-#endif
 				);
 		resequence(/*scrollp*/);
 	}
-#ifdef pneu
-#else
-	freeChecked(temp);
-#endif
 }
 
 /*
@@ -1893,27 +1599,12 @@ void SScroll::insertCDKScrollItem(/*SScroll *scrollp, */const char *item)
  */
 void SScroll::deleteCDKScrollItem(/*SScroll *scrollp, */int position)
 {
-#ifdef pneu
 	if (position>=0 && position<listSize) {
 		pitem.erase(pitem.begin()+position);
 		listSize--;
     itemLen.erase(itemLen.begin()+position);
     itemPos.erase(itemPos.begin()+position);
-#else
-	if (position >= 0 && position < /*scrollp->*/listSize) {
-		freeChtype(/*scrollp->*/sitem[position]);
-		/* Adjust the list. */
-		for (int x = position; x < /*scrollp->*/listSize; x++) {
-			/*scrollp->*/sitem[x] = /*scrollp->*/sitem[x + 1];
-			/*scrollp->*/itemLen[x] = /*scrollp->*/itemLen[x + 1];
-			/*scrollp->*/itemPos[x] = /*scrollp->*/itemPos[x + 1];
-		}
-#endif
 		setViewSize(/*scrollp, *//*scrollp->*/ listSize 
-#ifdef pneu
-#else
-				- 1
-#endif
 				);
 		if (/*scrollp->*/ listSize > 0)
 			resequence(/*scrollp*/);
@@ -1945,10 +1636,6 @@ SEntry::~SEntry()
 		cleanCdkTitle();
 		//freeChtype(this->label);
 		delete labelp;
-#ifdef ineu
-#else
-		freeChecked(this->efld);
-#endif
 		/* Delete the windows. */
 		deleteCursesWindow(this->fieldWin);
 		deleteCursesWindow(this->labelWin);
@@ -1962,11 +1649,7 @@ SEntry::~SEntry()
 
 const int abstand{
 	// wer rausfindet warum, bekommt einen Preis
-#ifdef pneu
 	2
-#else
-	1
-#endif
 }; // Abstand des Scrollfeldes vom Entryfeld
 /*
  * This moves the entry field to the given location.
@@ -2180,13 +1863,7 @@ void SScroll::moveCDKScroll(
 
 void SAlphalist::destroyInfo()
 {
-#ifdef pneu
 	plist.clear();
-#else
-   CDKfreeStrings(slist);
-   slist = 0;
-   listSize = 0;
-#endif
 }
 
 SAlphalist::~SAlphalist()
@@ -2230,22 +1907,6 @@ SFSelect::~SFSelect()
       cleanCDKObjectBindings(/*vFSELECT, fselect*/);
 
       /* Free up the character pointers. */
-#ifdef pneu
-#else
-      freeChecked(this->pwd);
-      freeChecked(this->pathname);
-#endif
-#ifdef pneu
-#else
-      freeChecked(this->dirAttribute);
-      freeChecked(this->fileAttribute);
-      freeChecked(this->linkAttribute);
-      freeChecked(this->sockAttribute);
-#endif
-#ifdef pneu
-#else
-      CDKfreeStrings(this->dirContents);
-#endif
 
       /* Destroy the other Cdk objects. */
 			//      destroyCDKScroll(this->scrollField);
@@ -2311,12 +1972,6 @@ SScroll::~SScroll(/*CDKOBJS *object*/)
 {
 		//SScroll *scrollp =(SScroll *)object;
 		cleanCdkTitle();
-#ifdef pneu
-#else
-		CDKfreeChtypes(this->sitem);
-		freeChecked(this->itemPos);
-		freeChecked(this->itemLen);
-#endif
 		/* Clean up the windows. */
 		deleteCursesWindow(this->scrollbarWin);
 		deleteCursesWindow(this->shadowWin);
@@ -2328,7 +1983,6 @@ SScroll::~SScroll(/*CDKOBJS *object*/)
 		unregisterCDKObject(vSCROLL);
 }
 
-#ifdef pneu
 void aufSplit(vector<string> *tokens, const char* const text, const char sep/*=' '*/,bool auchleer/*=1*/)
 {
   aufSplit(tokens,string(text),sep,auchleer);
@@ -2347,54 +2001,6 @@ void aufSplit(vector<string> *tokens, const string& text, const char sep/*=' '*/
 	if (text.length() !=start || auchleer)
 		tokens->push_back(text.substr(start));
 } // void aufSplit(vector<string> *tokens, const string& text, const char sep,bool auchleer/*=1*/)
-#else
-
-/*
- * Split a string into a list of strings.
- */
-char **CDKsplitString(const char *string, int separator)
-{
-	char **result = 0;
-	char *temp;
-
-	if (string && *string) {
-		unsigned need = countChar(string, separator) + 2;
-		if ((result = typeMallocN(char *, need))) {
-			unsigned nr = 0;
-			const char *first = string;
-			for (;;) {
-				while (*string && *string != separator)
-					string++;
-
-				need =(unsigned)(string - first);
-				if (!(temp = typeMallocN(char, need + 1)))
-					break;
-
-				memcpy(temp, first, need);
-				temp[need] = 0;
-				result[nr++] = temp;
-
-				if (!*string++)
-					break;
-				first = string;
-			}
-			result[nr] = 0;
-		}
-	}
-	return result;
-}
-
-static unsigned countChar(const char *string, int separator)
-{
-	unsigned result = 0;
-	int ch;
-	while ((ch = *string++)) {
-		if (ch == separator)
-			result++;
-	}
-	return result;
-}
-#endif
 
 /*
  * Set the widget's title.
@@ -2403,39 +2009,24 @@ int CDKOBJS::setCdkTitle(const char *titlec, int boxWidth)
 {
 	cleanCdkTitle();
 	if (titlec) {
-#ifdef pneu
 		vector<string> temp;
-#else
-		char **temp = 0;
-#endif
 		int titleWidth;
 		int x;
 		int len;
 		int align;
 
 		/* We need to split the title on \n. */
-#ifdef pneu
 		aufSplit(&temp,titlec,'\n');
 		titleLines=temp.size();
 		titlePos = new int[titleLines];
 		titleLen=new int[titleLines];
-#else
-		temp = CDKsplitString(titlec, '\n');
-		titleLines = (int)CDKcountStrings((CDK_CSTRING2)temp);
-		//title = typeCallocN(chtype *, titleLines + 1);
-		titlePos = typeCallocN(int, titleLines + 1);
-		titleLen = typeCallocN(int, titleLines + 1);
-#endif
 		if (boxWidth >= 0) {
 			int maxWidth = 0;
 			/* We need to determine the widest title line. */
 			for (x = 0; x < titleLines; x++) {
 //				chtype *holder = char2Chtypeh(temp[x], &len, &align);
 				chtstr holder(temp[x]
-#ifdef pneu
 	 					.c_str()
-#else
-#endif
 						,&len,&align);
 				maxWidth = MAXIMUM(maxWidth, len);
 //				freeChtype(holder);
@@ -2450,17 +2041,10 @@ int CDKOBJS::setCdkTitle(const char *titlec, int boxWidth)
 		for (x = 0; x < titleLines; x++) {
 //			title[x] = char2Chtypeh(temp[x], &titleLen[x], &titlePos[x]);
 			titles.push_back(chtstr(temp[x]
-#ifdef pneu
 	 					.c_str()
-#else
-#endif
 						,&titleLen[x],&titlePos[x]));
 			titlePos[x] = justifyString(titleWidth, titleLen[x], titlePos[x]);
 		}
-#ifdef pneu
-#else
-		CDKfreeStrings(temp);
-#endif
 	}
 	return boxWidth;
 } // int CDKOBJS::setCdkTitle(const char *title, int boxWidth)
@@ -2570,30 +2154,12 @@ void CDKOBJS::bindCDKObject(
 		    void *data)
 {
 	CDKOBJS *obj = bindableObject();
-#ifdef bneu
 	if (obj) {
 		if (key==9) {
 			// int test{0};
 		}
 		obj->bindv[key]=CDKBINDING(function,data);
 	}
-#else
-	if ((key < KEY_MAX) && obj) {
-		if (key && (unsigned)key >= obj->bindingCount) {
-			unsigned next = (unsigned) (key + 1);
-			if (obj->bindingList)
-				obj->bindingList = typeReallocN(CDKBINDING, obj->bindingList, next);
-			else
-				obj->bindingList = typeMallocN(CDKBINDING, next);
-			memset(&(obj->bindingList[obj->bindingCount]), 0,(next - obj->bindingCount) * sizeof(CDKBINDING));
-			obj->bindingCount = next;
-		}
-		if (obj->bindingList) {
-			obj->bindingList[key].bindFunction = function;
-			obj->bindingList[key].bindData = data;
-		}
-	}
-#endif
 }
 
 /*
@@ -2602,16 +2168,9 @@ void CDKOBJS::bindCDKObject(
 void CDKOBJS::unbindCDKObject(chtype key)
 {
 	CDKOBJS *obj = bindableObject();
-#ifdef bneu
 	if (obj) {
 		obj->bindv.erase(key);
 	}
-#else
-	if (obj &&((unsigned)key < obj->bindingCount)) {
-		obj->bindingList[key].bindFunction = 0;
-		obj->bindingList[key].bindData = 0;
-	}
-#endif
 }
 
 /*
@@ -2620,19 +2179,9 @@ void CDKOBJS::unbindCDKObject(chtype key)
 void CDKOBJS::cleanCDKObjectBindings()
 {
 	CDKOBJS *obj = bindableObject();
-#ifdef bneu
 	if (obj) {
 		obj->bindv.clear();
 	}
-#else
-	if (obj && obj->bindingList) {
-		for (unsigned x = 0; x < obj->bindingCount; x++) {
-			(obj)->bindingList[x].bindFunction = 0;
-			(obj)->bindingList[x].bindData = 0;
-		}
-		freeAndNull((obj)->bindingList);
-	}
-#endif
 }
 
 
@@ -2645,7 +2194,6 @@ void CDKOBJS::cleanCDKObjectBindings()
 int CDKOBJS::checkCDKObjectBind(chtype key)
 {
 	CDKOBJS *obj = bindableObject();
-#ifdef bneu
 	if (obj) {
 		if (obj->bindv.find(key)!=obj->bindv.end()) {
 			BINDFN function=obj->bindv[key].bindFunction;
@@ -2653,15 +2201,6 @@ int CDKOBJS::checkCDKObjectBind(chtype key)
 			return function(cdktype, this, data, key);
 		}
 	}
-#else
-	if (obj && ((unsigned)key < obj->bindingCount)) {
-		if ((obj)->bindingList[key].bindFunction) {
-			BINDFN function = obj->bindingList[key].bindFunction;
-			void *data = obj->bindingList[key].bindData;
-			return function(cdktype, this, data, key);
-		}
-	}
-#endif
 	return(FALSE);
 }
 
@@ -2672,18 +2211,11 @@ bool CDKOBJS::isCDKObjectBind(chtype key)
 {
 	bool result = FALSE;
 	CDKOBJS *obj = bindableObject();
-#ifdef bneu
 	if (obj) {
 		if (obj->bindv.find(key)!=obj->bindv.end()) {
 			result=TRUE;
 		}
 	}
-#else
-	if (obj && ((unsigned)key < obj->bindingCount)) {
-		if ((obj)->bindingList[key].bindFunction)
-			result = TRUE;
-	}
-#endif
 	return (result);
 }
 
@@ -2713,7 +2245,6 @@ int CDKOBJS::getcCDKObject()
 	CDKOBJS *test = bindableObject();
 	int result = wgetch(InputWindowOf(this));
 	// printf("%c %ul\n",result,result); //G.Schade
-#ifdef bneu
 	//BINDFN fn{0};
 	//CDKBINDING *bnd{0}; 
 	if (result>=0 && test) {
@@ -2756,50 +2287,6 @@ int CDKOBJS::getcCDKObject()
 				break;
 		}
 	}
-#else
-	if (result >= 0
-			&& test
-			&& (unsigned)result < test->bindingCount
-			&& test->bindingList[result].bindFunction == getcCDKBind) {
-		result =(int)(long)test->bindingList[result].bindData;
-	} else if (!test 
-			|| (unsigned)result >= test->bindingCount
-			|| !test->bindingList[result].bindFunction) {
-		switch (result) {
-			case '\r':
-			case '\n':
-				result = KEY_ENTER;
-				break;
-			case '\t':
-				result = KEY_TAB;
-				break;
-			case DELETE:
-				result = KEY_DC;
-				break;
-			case '\b':		// same as CTRL('H'), for ASCII 
-				result = KEY_BACKSPACE;
-				break;
-			case CDK_BEGOFLINE:
-				result = KEY_HOME;
-				break;
-			case CDK_ENDOFLINE:
-				result = KEY_END;
-				break;
-			case CDK_FORCHAR:
-				result = KEY_RIGHT;
-				break;
-			case CDK_BACKCHAR:
-				result = KEY_LEFT;
-				break;
-			case CDK_NEXT:
-				result = KEY_TAB;
-				break;
-			case CDK_PREV:
-				result = KEY_BTAB;
-				break;
-		}
-	}
-#endif
 	return result;
 } // int CDKOBJS::getcCDKObject()
 
@@ -2832,35 +2319,20 @@ void SEntry::schreibl(chtype character)
   int plainchar;
   if (altobuml||obuml) plainchar=character; else plainchar=filterByDisplayType(dispType, character);
 	// wenn Ende erreicht wuerde, dann von 2-Buchstabenlaengen langen Buchstaben keinen schreiben
-#ifdef ineu
 //	const int slen=strlen(efld.c_str());
 	const int slen=efld.length();
-#else
-	const int slen=strlen(efld);
-#endif
   if (plainchar == ERR ||(obuml&&slen>max-2)||(altobuml&&slen>max-2&&efld[slen-1]!=-61&&efld[slen-1]!=-62)||(slen >= max)) {
     Beep();
   } else {
     /* Update the screen and pointer. */
     if (sbuch != fieldWidth - 1) {
-#ifdef ineu
 			efld.insert(efld.begin()+screenCol+leftChar,(char)plainchar);
-#else
-      for (int x = slen; x >(screenCol + leftChar); x--) {
-        efld[x] = efld[x - 1];
-      }
-      efld[screenCol + leftChar] =(char)plainchar;
-#endif
       screenCol++;
       if (!obuml) sbuch++;
     } else {
       /* Update the character pointer. */
       size_t temp = slen;
-#ifdef ineu
 			efld.resize(temp+1);
-#else
-      efld[temp + 1] = '\0';
-#endif
       efld[temp] =(char)plainchar;
 			if (obuml) {
 				screenCol++;
@@ -2896,15 +2368,10 @@ void SEntry::zeichneFeld()
 	/* Draw in the filler characters. */
 	(void)mvwhline(fieldWin, 0, x, filler | fieldAttr, fieldWidth);
 	/* If there is information in the field. Then draw it in. */
-#ifdef ineu
 //	if (!efld.empty()) {
 	if (1) {
 //		const int infoLength =(int)strlen(efld.c_str());
 		const int infoLength = efld.length();
-#else
-	if (efld) {
-		const int infoLength =(int)strlen(efld);
-#endif
 		/* Redraw the field. */
 		if (isHiddenDisplayType(dispType)) {
 			for (x = leftChar; x < infoLength; x++) {
@@ -2913,11 +2380,7 @@ void SEntry::zeichneFeld()
 		} else {
 			if (0) {
 				char ausgabe[infoLength-leftChar+1];
-#ifdef ineu
 				memcpy(ausgabe,&efld[leftChar],infoLength-leftChar);
-#else
-				memcpy(ausgabe,efld+leftChar,infoLength-leftChar);
-#endif
 				ausgabe[infoLength-leftChar]=0;
 			} else if (0) {
 				/*
@@ -3062,18 +2525,10 @@ SEntry::SEntry(SScreen *cdkscreen,
 			}
 
 			/* Make room for the info char * pointer. */
-#ifdef ineu
 			// info ist vorher noch leer
 			//efld.resize(maxp+3);
 			efld.reserve(maxp+3);
 			{
-#else
-			efld = typeMallocN(char, maxp + 3);
-			if (!efld) {
-				destroyCDKObject();
-			} else {
-				cleanChar(efld, maxp + 3, '\0');
-#endif
 				infoWidth = maxp + 3;
 
 				/* *INDENT-EQLS* Set up the rest of the structure. */
@@ -3197,11 +2652,7 @@ const char* SEntry::activateCDKEntry(chtype *actions,int *Zweitzeichen/*=0*/,int
 	}
 	/* Make sure we return the correct info. */
 	if (this->exitType == vNORMAL) {
-#ifdef ineu
 		return this->efld.c_str();
-#else
-		return this->efld;
-#endif
 	} else {
 		return 0;
 	}
@@ -3303,12 +2754,8 @@ int SEntry::injectCDKEntry(chtype input)
 			EarlyExitOf(this);
 			complete = TRUE;
 		} else {
-#ifdef ineu
 //			const int infoLength = (int)strlen(this->efld.c_str());
 			const size_t infoLength=efld.length();
-#else
-			const int infoLength =(int)strlen(this->efld);
-#endif
 			size_t/*int*/ currPos = this->screenCol + this->leftChar;
 			switch (input) {
 				case KEY_UP:
@@ -3392,32 +2839,13 @@ int SEntry::injectCDKEntry(chtype input)
 							if (currPos < infoLength) {
 						// mvwprintw(this->parent,2,100,"!!!!!!!!!, currPos: %i, obuml: %i",currPos,obuml);
 								// wrefresh(this->parent);
-#ifdef ineu
 								efld.erase(currPos,1+obuml);
-#else
-								for (int x = currPos; x < infoLength; x++) {
-									if (x+1+obuml>this->max-1) 
-										this->efld[x]=0;
-									else 
-										this->efld[x]=this->efld[x+1+obuml];
-								}
-								if (obuml) if (infoLength>1) 
-									this->efld[infoLength-2]=0;
-#endif
 								success = TRUE;
 							} else if (input == KEY_BACKSPACE) {
-#ifdef ineu
 								efld.resize(infoLength-1);
-#else
-								this->efld[infoLength - 1] = '\0';
-#endif
 								success = TRUE;
                 if (infoLength>1) if (obuml) 
-#ifdef ineu
 									efld.resize(infoLength-2);
-#else
-									this->efld[infoLength-2]=0;
-#endif
               }
 						}
 						if (success) {
@@ -3455,12 +2883,7 @@ int SEntry::injectCDKEntry(chtype input)
 					break;
 				case CDK_CUT:
 					if (infoLength) {
-#ifdef pneu
 						GPasteBuffer=efld;
-#else
-						freeChecked(GPasteBuffer);
-						GPasteBuffer = copyChar(this->efld);
-#endif
 						cleanCDKEntry();
 						this->zeichneFeld();
 					} else {
@@ -3469,24 +2892,14 @@ int SEntry::injectCDKEntry(chtype input)
 					break;
 				case CDK_COPY:
 					if (infoLength) {
-#ifdef pneu
 						GPasteBuffer=efld;
-#else
-						freeChecked(GPasteBuffer);
-						GPasteBuffer = copyChar(this->efld);
-#endif
 					} else {
 						Beep();
 					}
 					break;
 				case CDK_PASTE:
-#ifdef pneu
 					if (!GPasteBuffer.empty()) {
-						setCDKEntryValue(GPasteBuffer.c_str());
-#else
-					if (GPasteBuffer) {
 						setCDKEntryValue(GPasteBuffer);
-#endif
 						this->zeichneFeld();
 					} else {
 						Beep();
@@ -3497,11 +2910,7 @@ int SEntry::injectCDKEntry(chtype input)
 					if (infoLength >= (size_t)this->min)
 					{
 						setExitType(input);
-#ifdef ineu
 						ret = efld.c_str();
-#else
-						ret = this->efld;
-#endif
 						complete = TRUE;
 					} else {
 						Beep();
@@ -3550,6 +2959,13 @@ int SEntry::injectCDKEntry(chtype input)
  * This removes the old information in the entry field and keeps the
  * new information given.
  */
+void SEntry::setCDKEntryValue(string newValue)
+{
+	/* OK, erase the old value, and copy in the new value. */
+	efld=newValue;
+	//			if (max>efld.length()) efld.resize(max);
+	this->settoend();
+}
 void SEntry::setCDKEntryValue(const char *newValue)
 {
 	/* If the pointer sent in is the same pointer as before, do nothing. */
@@ -3557,41 +2973,22 @@ void SEntry::setCDKEntryValue(const char *newValue)
 		/* Just to be sure, if lets make sure the new value isn't null. */
 		if (!newValue) {
 			/* Then we want to just erase the old value. */
-#ifdef ineu
 			efld.clear();
 //			efld.resize(infoWidth);
-#else
-			cleanChar(this->efld, this->infoWidth, '\0');
-#endif
-
 			/* Set the pointers back to zero. */
 			this->leftChar = 0;
       this->lbuch=0;
 			this->screenCol = 0;
       this->sbuch=0;
 		} else {
-			/* OK, erase the old value, and copy in the new value. */
-#ifdef ineu
-			efld=newValue;
-//			if (max>efld.length()) efld.resize(max);
-#else
-			/* Determine how many characters we need to copy. */
-			int copychars = MINIMUM((int)strlen(newValue), this->max);
-			cleanChar(this->efld, this->max, '\0');
-			strncpy(this->efld, newValue,(unsigned)copychars);
-#endif
-      this->settoend();
+			setCDKEntryValue(string(newValue));
 		}
 	}
 }
 
 const char* SEntry::getCDKEntryValue()
 {
-#ifdef ineu
 	return efld.c_str();
-#else
-	return efld;
-#endif
 }
 
 /*
@@ -3612,11 +3009,7 @@ void SEntry::setCDKEntry(
 void SEntry::settoend()
 {
   screenCol=sbuch=leftChar=lbuch=0;
-#ifdef ineu
   for(int i=efld.length();i;) {
-#else
-  for(int i=strlen(efld);i;) {
-#endif
     --i;
     if (sbuch<fieldWidth) {
       screenCol++;
@@ -3641,12 +3034,8 @@ void SEntry::settoend()
 void SEntry::cleanCDKEntry()
 {
 	/* Erase the information in the character pointer. */
-#ifdef ineu
 	efld.clear();
 //	efld=string(infoWidth,'\0');
-#else
-	cleanChar(efld,infoWidth,'\0');
-#endif
 	/* Clean the entry screen field. */
 	(void)mvwhline(fieldWin, 0, 0, this->filler, fieldWidth);
 	/* Reset some variables. */
@@ -3810,44 +3199,6 @@ void CDKOBJS::saveDataCDK()
 {
 }
 
-#ifdef pneu
-#else
-int SAlphalist::createList(CDK_CSTRING *list, int listSize)
-{
-	int status = 0;
-	if (listSize >= 0) {
-		char **newlist = typeCallocN(char *, listSize + 1);
-		if (newlist) {
-			/*
-			 * We'll sort the list before we use it.  It would have been better to
-			 * declare list[] const and only modify the copy, but there may be
-			 * clients that rely on the old behavior.
-			 */
-			sortList(list, listSize);
-			/* Copy in the new information. */
-			status = 1;
-			for (int x = 0; x < listSize; x++) {
-				if (!(newlist[x] = copyChar(list[x]))) {
-					status = 0;
-					break;
-				}
-			}
-			if (status) {
-				destroyInfo();
-				this->listSize = listSize;
-				this->slist = newlist;
-			} else {
-				CDKfreeStrings(newlist);
-			}
-		}
-	} else {
-		destroyInfo();
-		status = TRUE;
-	}
-	return status;
-}
-#endif
-
 /*
  * The alphalist's focus resides in the entry widget.  But the scroll widget
  * will not draw items highlighted unless it has focus.  Temporarily adjust the
@@ -3904,19 +3255,11 @@ int SFSelect::injectCDKFselect(/*CDKOBJS *object, */chtype input)
 	//   SFSelect *fselect =(SFSelect *)object;
 	const char *filename{""};
 	bool file;
-#ifdef pneu
-#else
-	char *ret = 0/*unknownString*/;
-#endif
 	bool complete = FALSE;
 	/* Let the user play. */
 	if (entryField) {
-#ifdef pneu
 	 if (entryField->injectCDKEntry(/*this->entryField, */input)) 
 		 filename=entryField->resultData.valueString;
-#else
-	 filename = entryField->injectCDKEntry(/*this->entryField, */input)?entryField->resultData.valueString:0/*unknownString*/;
-#endif
   }
 	/* Copy the entry field exitType to the fileselector. */
 //	copyExitType(this, this->entryField);
@@ -3928,24 +3271,15 @@ int SFSelect::injectCDKFselect(/*CDKOBJS *object, */chtype input)
 	/* Can we change into the directory? */
 	file = chdir(filename);
 	if (chdir(this->pwd
-#ifdef pneu
 				.c_str()
-#else
-#endif
 				)) {
 		return 0;
 	}
 	/* If it's not a directory, return the filename. */
 	if (file) {
 		/* It's a regular file, create the full path. */
-#ifdef pneu
 		this->pfadname=filename;
 		/* Return the complete pathname. */
-#else
-		this->pathname = copyChar(filename);
-		/* Return the complete pathname. */
-		ret = (this->pathname);
-#endif
 		complete = TRUE;
 	} else {
 		/* Set the file selector information. */
@@ -3953,26 +3287,14 @@ int SFSelect::injectCDKFselect(/*CDKOBJS *object, */chtype input)
 				this->fieldAttribute, this->fillerCharacter,
 				this->highlight,
 				this->dirAttribute
-#ifdef pneu
 				.c_str()
-#else
-#endif
 				, this->fileAttribute
-#ifdef pneu
 				.c_str()
-#else
-#endif
 				,
 				this->linkAttribute
-#ifdef pneu
 				.c_str()
-#else
-#endif
 				, this->sockAttribute
-#ifdef pneu
 				.c_str()
-#else
-#endif
 				,
 				/*ObjOf(this)->*/obbox);
 
@@ -3981,40 +3303,17 @@ int SFSelect::injectCDKFselect(/*CDKOBJS *object, */chtype input)
 	}
 	if (!complete)
 		setExitType(/*this, */0);
-#ifdef pneu
   resultData.valueString=pfadname.c_str();
-#else
-	ResultOf(this).valueString = ret;
-#endif
-#ifdef pneu
 	return !pfadname.empty();
-#else
-	return (ret != 0/*unknownString*/);
-#endif
 }
 
 
 /*
  * This sets multiple attributes of the widget.
  */
-void SAlphalist::setCDKAlphalist(
-#ifdef pneu
-		      vector<string> *plistp,
-#else
-		      CDK_CSTRING *list,
-		      int listSize,
-#endif
-		      chtype fillerChar,
-		      chtype highlight,
-		      bool Box)
+void SAlphalist::setCDKAlphalist(vector<string> *plistp, chtype fillerChar, chtype highlight, bool Box)
 {
-   setCDKAlphalistContents(
-#ifdef pneu
-			 plistp
-#else
-			 list, listSize
-#endif
-			 );
+   setCDKAlphalistContents(plistp);
    setCDKAlphalistFillerChar(fillerChar);
    setCDKAlphalistHighlight(highlight);
    setBox/*setCDKAlphalistBox*/(Box);
@@ -4023,40 +3322,12 @@ void SAlphalist::setCDKAlphalist(
 /*
  * This sets certain attributes of the scrolling list.
  */
-void SScroll::setCDKScroll(
-#ifdef pneu
-		vector<string> *plistp,
-#else
-		 CDK_CSTRING2 list,
-		 int listSize,
-#endif
-		   bool numbers,
-		   chtype hl,
-		   bool Box)
+void SScroll::setCDKScroll(vector<string> *plistp, bool numbers, chtype hl, bool Box)
 {
-   setCDKScrollItems(
-#ifdef pneu
-			 								plistp,
-#else
-			 								list, listSize, 
-#endif
-																			numbers);
+   setCDKScrollItems(plistp, numbers);
 	 highlight=hl;
 	 obbox=Box;
 }
-#ifdef pneu
-#else
-// wird bisher nicht gebraucht
-int SScroll::getCDKScrollItems(/*SScroll *scrollp, */char **list)
-{
-	if (list) {
-		for (int x = 0; x < /*scrollp->*/listSize; x++) {
-			list[x] = chtype2Char(/*scrollp->*/sitem[x]);
-		}
-	}
-	return /*scrollp->*/listSize;
-}
-#endif
 
 /*
  * This sets the box attribute of the scrolling list.
@@ -4081,21 +3352,9 @@ bool SScroll::getCDKScrollBox()
 /*
  * This sets the scrolling list items.
  */
-void SScroll::setCDKScrollItems(
-#ifdef pneu
-			 													vector<string> *plistp,
-#else
-																CDK_CSTRING2 list, int listSize, 
-#endif
-																																bool numbers)
+void SScroll::setCDKScrollItems(vector<string> *plistp, bool numbers)
 {
-   if (createCDKScrollItemList(numbers, 
-#ifdef pneu
-				 plistp
-#else
-				 list, listSize
-#endif
-				 ) <= 0)
+   if (createCDKScrollItemList(numbers, plistp) <= 0)
       return;
    /* Clean up the display. */
    for (int x = 0; x < this->viewSize; x++) {
@@ -4129,31 +3388,11 @@ void SScroll::setCDKScrollPosition(int item)
 /*
  * This function sets the information inside the file selector.
  */
-void SAlphalist::setCDKAlphalistContents(
-#ifdef pneu
-		      vector<string> *plistp
-#else
-		CDK_CSTRING *list, int listSize
-#endif
-		)
+void SAlphalist::setCDKAlphalistContents(vector<string> *plistp)
 {
-#ifdef pneu
 	 plist=*plistp;
-#else
-   if (!createList(list, listSize))
-      return;
-#endif
    /* Set the information in the scrolling list. */
-   scrollField->setCDKScroll(
-#ifdef pneu
-		 plistp,
-#else
-		 (CDK_CSTRING2)this->slist,
-		 this->listSize,
-#endif
-		 NONUMBERS,
-		 scrollField->highlight,
-		 ObjOf(scrollField)->obbox);
+   scrollField->setCDKScroll(plistp, NONUMBERS, scrollField->highlight, ObjOf(scrollField)->obbox);
    /* Clean out the entry field. */
    setCDKAlphalistCurrentItem(0);
    entryField->cleanCDKEntry();
@@ -4165,24 +3404,9 @@ void SAlphalist::setCDKAlphalistContents(
 /*
  * This returns the contents of the widget.
  */
-#ifdef pneu
-vector<string> *
-#else
-char ** 
-#endif
-SAlphalist::getCDKAlphalistContents(
-#ifdef pneu
-#else
-		int *size
-#endif
-		)
+vector<string> *SAlphalist::getCDKAlphalistContents()
 {
-#ifdef pneu
 	return &plist;
-#else
-   (*size) = listSize;
-   return slist;
-#endif
 }
 
 /*
@@ -4195,17 +3419,9 @@ int SAlphalist::getCDKAlphalistCurrentItem()
 
 void SAlphalist::setCDKAlphalistCurrentItem(int item)
 {
-#ifdef pneu
 	 if (plist.size()) {
-#else
-   if (this->listSize) {
-#endif
       scrollField->setCDKScrollCurrent(item);
-#ifdef pneu
-			entryField->setCDKEntryValue(next(plist.begin(),item)->c_str());
-#else
-      entryField->setCDKEntryValue(this->slist[scrollField->currentItem]);
-#endif
+			entryField->setCDKEntryValue(*next(plist.begin(),item));
    }
 }
 
@@ -4326,21 +3542,11 @@ static int adjustAlphalistCB(EObjectType objectType GCC_UNUSED, void
    SScroll *scrollp      = alphalist->scrollField;
    SEntry *entry         = alphalist->entryField;
    if (scrollp->listSize > 0) {
-      char *current;
       /* Adjust the scrolling list. */
       alphalist->injectMyScroller(key);
       /* Set the value in the entry field. */
-#ifdef pneu
-			current=scrollp->pitem[scrollp->currentItem].chtype2Char();
-#else
-      current = chtype2Char(scrollp->sitem[scrollp->currentItem]);
-#endif
-      entry->setCDKEntryValue(current);
+      entry->setCDKEntryValue(scrollp->pitem[scrollp->currentItem].chtype2Char());
       entry->drawObj(alphalist->obbox);
-#ifdef pneu
-#else
-      freeChecked(current);
-#endif
       return TRUE;
    }
    Beep();
@@ -4359,25 +3565,13 @@ static int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UN
    int wordLength          = 0;
    int Index               = 0;
    int ret                 = 0;
-#ifdef pneu
 	 vector<string> altWords;
-#else
-   char **altWords         = 0;
-#endif
-#ifdef ineu
 	 if (0) {
-#else
-   if (!entry->efld) {
-#endif
       Beep();
       return TRUE;
    }
-#ifdef ineu
 //   wordLength = (int)strlen(entry->efld.c_str());
 	 wordLength=entry->efld.length();
-#else
-   wordLength = (int)strlen(entry->efld);
-#endif
 
    /* If the word length is equal to zero, just leave. */
    if (!wordLength) {
@@ -4387,16 +3581,8 @@ static int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UN
 
    /* Look for a unique word match. */
    Index = searchList(
-#ifdef pneu
 		&alphalist->plist,
-#else
-			 (CDK_CSTRING2)alphalist->slist, alphalist->listSize, 
-#endif
-#ifdef ineu
 			 entry->efld.c_str()
-#else
-			 entry->efld
-#endif
 			 );
 
    /* If the index is less than zero, return we didn't find a match. */
@@ -4406,68 +3592,26 @@ static int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UN
    }
 
    /* Did we find the last word in the list? */
-   if (Index == (int)alphalist->
-#ifdef pneu
-			 plist.size()
-#else
-			 listSize 
-#endif
-			 - 1) {
-      entry->setCDKEntryValue(alphalist->
-#ifdef pneu
-					plist[Index].c_str()
-#else
-					slist[Index]
-#endif
-											);
+   if (Index == (int)alphalist-> plist.size() - 1) {
+      entry->setCDKEntryValue(alphalist-> plist[Index]);
       entry->drawObj(entry->obbox);
       return TRUE;
    }
 
    /* Ok, we found a match, is the next item similar? */
-#ifdef pneu
    ret = strncmp(alphalist->plist[Index + 1].c_str(), 
-#else
-   ret = strncmp(alphalist->slist[Index + 1], 
-#endif
-#ifdef ineu
 			 entry->efld.c_str(),(size_t) wordLength);
-#else
-			 entry->efld,(size_t) wordLength);
-#endif
 	 if (!ret) {
 		 int currentIndex = Index;
 		 int altCount = 0;
-#ifdef pneu
-#else
-		 unsigned used = 0;
-#endif
 		 int selected;
 		 int height;
 		 int match;
 		 int x;
 
-#ifdef pneu
 		 while ((currentIndex<(int)alphalist->plist.size()) && (!strncmp(alphalist->plist[currentIndex].c_str(),
-#else
-		 /* Start looking for alternate words. */
-		 /* FIXME: bsearch would be more suitable */
-		 while ((currentIndex < alphalist->listSize)
-				 && (!strncmp(alphalist->slist[currentIndex],
-#endif
-#ifdef ineu
 						 entry->efld.c_str(),(size_t)wordLength))) {
-#else
-						 entry->efld, (size_t)wordLength))) {
-#endif
-#ifdef pneu
 			 altWords.push_back(alphalist->plist[currentIndex++]);
-#else
-			 used = CDKallocStrings(&altWords,
-					 alphalist->slist[currentIndex++],
-					 (unsigned)altCount++,
-					 used);
-#endif
 		 }
 
 		 /* Determine the height of the scrolling list. */
@@ -4477,11 +3621,7 @@ static int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UN
 		 scrollp = new SScroll(entry->/*obj.*/screen,
 				 CENTER, CENTER, RIGHT, height, -30,
 				 "<C></B/5>Possible Matches.",
-#ifdef pneu
 				 &altWords,
-#else
-				 (CDK_CSTRING2)altWords, altCount,
-#endif
 				 NUMBERS, A_REVERSE, TRUE, FALSE);
 
 		 /* Allow them to select a close match. */
@@ -4496,10 +3636,6 @@ static int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UN
 
 
 			 /* Clean up. */
-#ifdef pneu
-#else
-			 CDKfreeStrings(altWords);
-#endif
 
 			 /* Beep at the user. */
 			 Beep();
@@ -4515,11 +3651,7 @@ static int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UN
 
 		 /* Set the entry field to the selected value. */
 		 entry->setCDKEntry(
-#ifdef pneu
 				 altWords[match].c_str(),
-#else
-				 altWords[match],
-#endif
 				 entry->min,
 				 entry->max,
 				 alphalist->obbox);
@@ -4530,21 +3662,13 @@ static int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UN
 		 }
 
 		 /* Clean up. */
-#ifdef pneu
-#else
-		 CDKfreeStrings(altWords);
-#endif
 
 		 /* Redraw the alphalist. */
 		 alphalist->drawCDKAlphalist(alphalist->obbox);
 	 } else {
 		 /* Set the entry field with the found item. */
 		 entry->setCDKEntry(
-#ifdef pneu
 				 alphalist->plist[Index].c_str(),
-#else
-				 alphalist->slist[Index],
-#endif
 				 entry->min,
 				 entry->max,
 				 ObjOf(entry)->obbox);
@@ -4613,19 +3737,11 @@ static int preProcessEntryField(EObjectType cdktype GCC_UNUSED, void
 	SAlphalist *alphalist = (SAlphalist *)clientData;
 	SScroll *scrollp      = alphalist->scrollField;
 	SEntry *entry         = alphalist->entryField;
-#ifdef ineu
-#else
-	size_t infoLen             = (entry->efld ?(int)strlen(entry->efld) : 0);
-#endif
 	int result              = 1;
 	bool empty              = FALSE;
 
 	/* Make sure the entry field isn't empty. */
-#ifdef ineu
 	if (0) {
-#else
-	if (!entry->efld) {
-#endif
 		empty = TRUE;
 	} else if (alphalist->isCDKObjectBind(input)) {
 		result = 1;		/* don't try to use this key in editing */
@@ -4636,45 +3752,17 @@ static int preProcessEntryField(EObjectType cdktype GCC_UNUSED, void
 			input == KEY_DC) {
 		int Index, difference, absoluteDifference, x;
 		int currPos = (entry->screenCol + entry->leftChar);
-#ifdef qneu
 		string pattern;
-#else
-		char *pattern = (char *)malloc((size_t) infoLen + 2);
-#endif
 
-#ifdef ineu
-#ifdef qneu
 			pattern=entry->efld;
 			{
-#else
-			strcpy(pattern,&entry->efld[0]);
-			if (pattern) {
-#endif
-#else
-#ifdef qneu
-			pattern=entry->efld;
-			{
-#else
-			strcpy(pattern, entry->efld);
-			if (pattern) {
-#endif
-#endif
 
 			if (input == KEY_BACKSPACE || input == KEY_DC) {
 				if (input == KEY_BACKSPACE)
 					--currPos;
 				if (currPos >= 0)
-#ifdef qneu
 					pattern.erase(currPos,1);
-#else
-#ifdef ineu
-					strcpy(pattern + currPos, entry->efld.substr(currPos+1).c_str());
-#else
-					strcpy(pattern + currPos, entry->efld + currPos + 1);
-#endif
-#endif
 			} else {
-#ifdef qneu
 				/*
 				if (currPos==pattern.length()-1) {
 					pattern.append(1,(char)input);
@@ -4685,38 +3773,13 @@ static int preProcessEntryField(EObjectType cdktype GCC_UNUSED, void
 					/*
 				}
 				*/
-#else
-				pattern[currPos] =(char)input;
-#ifdef ineu
-				strcpy(pattern + currPos+1, entry->efld.substr(currPos).c_str());
-#else
-				strcpy(pattern + currPos+1, entry->efld+currPos);
-#endif
-#endif
 	// wrefresh(entry->screen->window);
 			}
 		}
-#ifdef qneu
 			if (!strlen(pattern.c_str())) empty=TRUE;
-#else
-		if (!pattern) {
-			Beep();
-		} else if (!strlen(pattern)) {
-			empty = TRUE;
-		}
-#endif
 		else if ((Index = searchList(
-#ifdef pneu
 		&alphalist->plist,
-#else
-						(CDK_CSTRING2)alphalist->slist,
-						alphalist->listSize,
-#endif
-#ifdef qneu
 						pattern.c_str()
-#else
-						pattern
-#endif
 							))>=0) {
 			/* *INDENT-EQLS* */
 			difference           = Index - scrollp->currentItem;
@@ -4746,11 +3809,6 @@ static int preProcessEntryField(EObjectType cdktype GCC_UNUSED, void
 			result = 0;
 			*/
 		}
-#ifdef pneu
-#else
-		if (pattern)
-			free(pattern);
-#endif
 	}
 	if (empty) {
 		scrollp->SetPosition(0);
@@ -4770,12 +3828,7 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 			       int width,
 			       const char *title,
 			       const char *label,
-#ifdef pneu
 						 vector<string> *plistp,
-#else
-			       CDK_CSTRING *slist,
-			       int listSize,
-#endif
 			       chtype fillerChar,
 			       chtype phighlight,
 			       bool Box,
@@ -4783,12 +3836,7 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 						 // GSchade Anfang
 						 int highnr/*=0*/
 						 // GSchade Ende
-		):
-#ifdef pneu
-			plist(*plistp)
-#endif
-	,xpos(xplace),ypos(yplace),highlight(phighlight)
-,fillerChar(fillerChar),shadow(shadow)
+		): plist(*plistp),xpos(xplace),ypos(yplace),highlight(phighlight),fillerChar(fillerChar),shadow(shadow)
 {
 	cdktype = vALPHALIST;
 	/* *INDENT-EQLS* */
@@ -4807,13 +3855,6 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 	/* *INDENT-ON* */
 
 	::CDKOBJS();
-#ifdef pneu
-#else
-	if (/*(alphalist = newCDKObject(SAlphalist, &my_funcs)) == 0 || */ !createList(slist, listSize)) {
-		destroyCDKObject();
-		return;
-	}
-#endif
 	setBox(Box);
 	/*
 	 * If the height is a negative value, the height will
@@ -4920,11 +3961,7 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 			RIGHT,
 			boxHeight - tempHeight,
 			tempWidth, 0, 
-#ifdef pneu
 			plistp,
-#else
-			(CDK_CSTRING2)slist, listSize,
-#endif
 			NONUMBERS, A_REVERSE,
 			Box, FALSE);
 //	setCDKScrollULChar(this->scrollField, ACS_LTEE);
@@ -5102,10 +4139,6 @@ void SScroll_basis::setViewSize(int size)
 {
    int max_view_size = MaxViewSize();
    viewSize = max_view_size;
-#ifdef pneu
-#else
-	 listSize = size;
-#endif
    lastItem = size - 1;
    maxTopItem = size - viewSize;
    if (size < viewSize) {
@@ -5131,21 +4164,13 @@ SScroll::SScroll(SScreen *cdkscreen,
 			 int height,
 			 int width,
 			 const char *title,
-#ifdef pneu
 			 vector<string> *plistp,
-#else
-			 CDK_CSTRING2 list,
-			 int listSize,
-#endif
 			 bool numbers,
 			 chtype phighlight,
 			 bool Box,
 			 bool pshadow)
 {
-#ifdef pneu
 	size_t listSize{plistp->size()};
-#else
-#endif
 	cdktype=vSCROLL;
    /* *INDENT-EQLS* */
    //SScroll *scrollp           = 0;
@@ -5269,13 +4294,7 @@ SScroll::SScroll(SScreen *cdkscreen,
 	 highlight						 = phighlight;
    SetPosition(0);
    /* Create the scrolling list item list and needed variables. */
-   if (createCDKScrollItemList(numbers, 
-#ifdef pneu
-				 plistp
-#else
-				 list, listSize
-#endif
-				 ) <= 0) {
+   if (createCDKScrollItemList(numbers,plistp) <= 0) {
       destroyCDKObject();
       return;
    }
@@ -5347,11 +4366,7 @@ void SScroll::drawCDKScrollCurrent()
    writeChtypeAttrib(this->listWin,
 		      ((screenPos >= 0) ? screenPos : 0)+einrueck,
 		      this->currentHigh,
-#ifdef pneu
 					this->pitem[this->currentItem].getinh(),
-#else
-		      this->sitem[this->currentItem],
-#endif
 		      highlight,
 		      HORIZONTAL,
 		      (screenPos >= 0) ? 0 :(1 - screenPos),
@@ -5385,19 +4400,11 @@ void SScroll::drawCDKScrollList(bool Box)
 				int screenPos = SCREENPOS(this, k);
 				/* Write in the correct line. */
 				// zeichnet alle, ohne das Aktuelle zu markieren
-#ifdef pneu
 				mvwprintw(parent,anzy++,90,"%i: cury: %i %s",reihe,listWin->_cury,pitem[k].chtype2Char());
-#else
-				mvwprintw(parent,anzy++,90,"%i: cury: %i %s",reihe,listWin->_cury,chtype2Char(sitem[k]));
-#endif
 				writeChtype(this->listWin,
 						((screenPos >= 0) ? screenPos : 1)+einrueck,
 						ypos, 
-#ifdef pneu
 						this->pitem[k].getinh(),
-#else
-						this->sitem[k], 
-#endif
 						HORIZONTAL,
 						(screenPos >= 0) ? 0 :(1 - screenPos),
 						this->itemLen[k]);
@@ -5566,71 +4573,25 @@ void CDKOBJS::setBKattrObj(/*CDKOBJS *object, */chtype attrib)
  * This function creates the scrolling list information and sets up the needed
  * variables for the scrolling list to work correctly.
  */
-int SScroll::createCDKScrollItemList(
-				    bool nummern,
-#ifdef pneu
-						vector<string> *plistp
-#else
-				    CDK_CSTRING2 list,
-				    int listSize
-#endif
-						)
+int SScroll::createCDKScrollItemList(bool nummern, vector<string> *plistp)
 {
 	int status = 0;
-	if (
-#ifdef pneu
-			plistp->size()
-#else
-			listSize
-#endif
-			> 0) {
+	if (plistp->size() > 0) {
 		/* *INDENT-EQLS* */
-#ifdef pneu
-#else
-		size_t have               = 0;
-		char *temp                = 0;
-#endif
 		if (
-#ifdef pneu
 				1
-#else
-				allocListArrays(0, listSize)
-#endif
 				) {
 			int widestItem = 0;
 			/* Create the items in the scrolling list. */
 			status = 1;
-			for (size_t x = 0; x < 
-#ifdef pneu
-					plistp->size()
-#else
-					listSize
-#endif
-					; x++) {
-				if (!allocListItem(
-							x,
-#ifdef pneu
-#else
-							&temp,
-							&have,
-#endif
-							nummern ?(x + 1) : 0,
-#ifdef pneu
-							plistp->at(x).c_str()
-#else
-							list[x]
-#endif
-							)) {
+			for (size_t x = 0; x < plistp->size() ; x++) {
+				if (!allocListItem(x, nummern ?(x + 1) : 0, plistp->at(x).c_str())) {
 					status = 0;
 					break;
 				}
 				status=1;
 				widestItem = MAXIMUM(this->itemLen[x], widestItem);
 			}
-#ifdef pneu
-#else
-			freeChecked(temp);
-#endif
 			if (status) {
 				updateViewWidth(widestItem);
 				/* Keep the boolean flag 'numbers' */
@@ -5649,73 +4610,20 @@ void SScroll_basis::updateViewWidth(int widest)
 /* before all the items have been scrolled off the screen. */
 	maxLeftChar=boxWidth>widest?0:widest-(boxWidth-2*borderSize);
 }
-#ifdef pneu
-#else
-bool SScroll::allocListArrays(int oldSize, int newSize)
-{
-	/* *INDENT-EQLS* */
-	bool result;
-	int nchunk           = ((newSize + 1) | 31) + 1;
-	chtype **newList     = typeCallocN(chtype *, nchunk);
-	int *newLen          = typeCallocN(int, nchunk);
-	int *newPos          = typeCallocN(int, nchunk);
-	if (newList && newLen && newPos ) {
-		for (int n = 0; n < oldSize; ++n) {
-			newList[n] = this->sitem[n];
-			newLen[n] = this->itemLen[n];
-			newPos[n] = this->itemPos[n];
-		}
-		freeChecked(this->sitem);
-		freeChecked(this->itemPos);
-		freeChecked(this->itemLen);
-		this->sitem = newList;
-		this->itemLen = newLen;
-		this->itemPos = newPos;
-		result = TRUE;
-	} else {
-		freeChecked(newList);
-		freeChecked(newLen);
-		freeChecked(newPos);
-		result = FALSE;
-	}
-	return result;
-}
-#endif
 
 bool SScroll::allocListItem(
 			      int which,
-#ifdef pneu
-#else
-			      char **work,
-			      size_t * used,
-#endif
 			      int number,
 			      const char *value)
 {
 	if (number > 0) {
 		size_t need = NUMBER_LEN(value);
-#ifdef pneu
 	  string valuestr;
 		valuestr.resize(need);
 		sprintf(&valuestr[0],NUMBER_FMT,number,value);
 		value=valuestr.c_str();
-#else
-		if (need > *used) {
-			*used =((need + 2) * 2);
-			if (!*work) {
-				if (!(*work =(char*)malloc(*used)))
-					return FALSE;
-			} else {
-				if (!(*work =(char*)realloc(*work, *used)))
-					return FALSE;
-			}
-		}
-		sprintf(*work, NUMBER_FMT, number, value);
-		value = *work;
-#endif
 	}
 //	if (!(this->sitem[which] = char2Chtypeh(value, &(this->itemLen[which]), &(this->itemPos[which])))) return FALSE;
-#ifdef pneu
 	int len,pos;
 	chtstr sitemneu(value,&len,&pos);
   pos=justifyString(boxWidth,len,pos);
@@ -5723,11 +4631,6 @@ bool SScroll::allocListItem(
 	listSize++;
 	itemLen.insert(itemLen.begin()+which,len);
 	itemPos.insert(itemPos.begin()+which,pos);
-#else
-	chtstr sitemneu(value,&(this->itemLen[which]), &(this->itemPos[which]));
-	sitemneu.rauskopier(&sitem[which]);
-	this->itemPos[which] = justifyString(this->boxWidth, this->itemLen[which], this->itemPos[which]);
-#endif
 	return TRUE;
 }
 
@@ -5868,11 +4771,6 @@ SScreen::SScreen(WINDOW *window)
 
 	/* Initialize the SScreen pointer. */
 	this->objectCount = 0;
-#ifdef pneu
-#else
-	this->objectLimit = 2;
-	this->object = typeMallocN(CDKOBJS *, this->objectLimit);
-#endif
 	this->window = window;
 
 	/* OK, we are done. */
@@ -5888,19 +4786,10 @@ SScreen::SScreen(WINDOW *window)
 SLabel::SLabel(SScreen *cdkscreen,
 		       int xplace,
 		       int yplace,
-#ifdef pneu
 					 vector<string> mesg,
-#else
-		       CDK_CSTRING2 mesg,
-		       int prows,
-#endif
 		       bool Box,
 		       bool shadow): boxWidth(INT_MIN),xpos(xplace),ypos(yplace),
-#ifdef pneu
 	rows(mesg.size()),
-#else
-	rows(prows),
-#endif
 	shadow(shadow)
 {
    /* *INDENT-EQLS* */
@@ -5914,13 +4803,6 @@ SLabel::SLabel(SScreen *cdkscreen,
 
 	::CDKOBJS();
    if (rows <= 0
-#ifdef pneu
-#else
-       /*|| (label = newCDKObject(SLabel, &my_funcs)) == 0*/
-       || (/*label->*/sinfo = typeCallocN(chtype *, rows + 1)) == 0
-       || (/*label->*/infoLen = typeCallocN(int, rows + 1)) == 0
-       || (/*label->*/infoPos = typeCallocN(int, rows + 1)) == 0
-#endif
 			 )
    {
       destroyCDKObject(/*label*/);
@@ -5932,15 +4814,10 @@ SLabel::SLabel(SScreen *cdkscreen,
 
    /* Determine the box width. */
    for (size_t x = 0; x < 
-#ifdef pneu
 			 mesg.size()
-#else
-			 rows
-#endif
 			 ; x++) {
       /* Translate the char * to a chtype. */
 //      /*label->*/info[x] = char2Chtypeh(mesg[x], &/*label->*/infoLen[x], &/*label->*/infoPos[x]);
-#ifdef pneu
 		 int len,pos;
 		 chtstr infoneu(mesg[x].c_str(),&len,&pos);
 		 //	pos=justifyString(boxWidth,len,pos);
@@ -5948,15 +4825,6 @@ SLabel::SLabel(SScreen *cdkscreen,
 		 // listSize++
 		 infoLen.insert(infoLen.begin()+x,len);
 		 infoPos.insert(infoPos.begin()+x,pos);
-#else
-		 chtstr infoneu(mesg[x]
-#ifdef pneu
-	 					.c_str()
-#else
-#endif
-				 ,&infoLen[x],&infoPos[x]);
-		 infoneu.rauskopier(&sinfo[x]);
-#endif
 		 boxWidth = MAXIMUM(boxWidth, /*label->*/infoLen[x]);
 	 }
    boxWidth += 2 * /*BorderOf(label)*/ borderSize;
@@ -6038,18 +4906,10 @@ void SLabel::activateCDKLabel(/*SLabel *label, */chtype *actions GCC_UNUSED)
  * This sets multiple attributes of the widget.
  */
 void SLabel::setCDKLabel(/*SLabel *label, */
-#ifdef pneu
 			 std::vector<std::string> mesg
-#else
-			 CDK_CSTRING2 mesg, int lines
-#endif
 		, bool Box)
 {
    setCDKLabelMessage(/*label, */mesg
-#ifdef pneu
-#else
-			 , lines
-#endif
 	 );
    setCDKLabelBox(/*label, */Box);
 }
@@ -6058,45 +4918,25 @@ void SLabel::setCDKLabel(/*SLabel *label, */
  * This sets the information within the label.
  */
 void SLabel::setCDKLabelMessage(/*SLabel *label, */
-#ifdef pneu
 			 std::vector<std::string> s_info
-#else
-			 CDK_CSTRING2 s_info, int infoSize
-#endif
 		)
 {
    int x;
    int limit;
 
    /* Clean out the old message. */
-#ifdef pneu
 	 pinfo.clear();
 	 infoPos.clear();
 	 infoLen.clear();
-#else
-   for (x = 0; x < /*label->*/rows; x++) {
-      freeChtype(/*label->*/sinfo[x]);
-      /*label->*/sinfo[x] = 0;
-      /*label->*/infoPos[x] = 0;
-      /*label->*/infoLen[x] = 0;
-   }
-#endif
 
    /* update the label's length - but taking into account its window size */
    limit = /*label->*/boxHeight -(2 * /*BorderOf(label)*/ borderSize);
-#ifdef pneu
 	 rows=s_info.size();
 	 if (rows>limit) rows=limit;
-#else
-   if (infoSize > limit)
-      infoSize = limit;
-   /*label->*/rows = infoSize;
-#endif
 
    /* Copy in the new message. */
    for (x = 0; x < /*label->*/rows; x++) {
 //      /*label->*/info[x] = char2Chtypeh(s_info[x], &/*label->*/infoLen[x], &/*label->*/infoPos[x]);
-#ifdef pneu
 		 int len,pos;
 		 chtstr infoneu(s_info[x].c_str(),&len,&pos);
 		 pos=justifyString(boxWidth-2*borderSize,len,pos);
@@ -6104,13 +4944,6 @@ void SLabel::setCDKLabelMessage(/*SLabel *label, */
 		 // listSize++
 		 infoLen.insert(infoLen.begin()+x,len);
 		 infoPos.insert(infoPos.begin()+x,pos);
-#else
-      chtstr infoneu(s_info[x],&infoLen[x],&infoPos[x]);
-			infoneu.rauskopier(&sinfo[x]);
-      /*label->*/infoPos[x] = justifyString(/*label->*/boxWidth - 2 * /*BorderOf(label)*/ borderSize,
-					 /*label->*/infoLen[x],
-					 /*label->*/infoPos[x]);
-#endif
    }
 
    /* Redraw the label widget. */
@@ -6118,14 +4951,6 @@ void SLabel::setCDKLabelMessage(/*SLabel *label, */
    drawCDKLabel(/*label, ObjOf(label)->*/obbox);
 }
 
-#ifdef pneu
-#else
-chtype **SLabel::getCDKLabelMessage(/*SLabel *label, */int *size)
-{
-   (*size) = /*label->*/rows;
-   return /*label->*/sinfo;
-}
-#endif
 
 /*
  * This sets the background attribute of the widget.
@@ -6157,11 +4982,7 @@ void SLabel::drawCDKLabel(/*CDKOBJS *object, */bool Box GCC_UNUSED)
       writeChtype(/*label->*/win,
 		   /*label->*/infoPos[x] + /*BorderOf(label)*/ borderSize,
 		   x + /*BorderOf(label)*/ borderSize,
-#ifdef pneu
 						this->pinfo[x].getinh(),
-#else
-		   /*label->*/sinfo[x],
-#endif
 		   HORIZONTAL,
 		   0,
 		   /*label->*/infoLen[x]);
@@ -6237,12 +5058,6 @@ void SLabel::destroyCDKLabel(/*CDKOBJS *object*/)
 //   if (object) {
 //      SLabel *label =(SLabel *)object;
 
-#ifdef pneu
-#else
-      CDKfreeChtypes(/*label->*/sinfo);
-      freeChecked(/*label->*/infoLen);
-      freeChecked(/*label->*/infoPos);
-#endif
 
       /* Free up the window pointers. */
       deleteCursesWindow(/*label->*/shadowWin);
@@ -6282,11 +5097,7 @@ char SLabel::waitCDKLabel(/*SLabel *label, */char key)
  * This pops up a message.
  */
 void SScreen::popupLabel(/*SScreen *screen, */
-#ifdef pneu
 			 std::vector<std::string> mesg
-#else
-			 CDK_CSTRING2 mesg, int count
-#endif
 		)
 {
 //   SLabel *popup = 0;
@@ -6294,10 +5105,6 @@ void SScreen::popupLabel(/*SScreen *screen, */
    bool functionKey;
    /* Create the label. */
    SLabel popup(this,CENTER, CENTER, mesg, 
-#ifdef pneu
-#else
-			 count, 
-#endif
 			 TRUE, FALSE);
    oldCursState = curs_set(0);
    /* Draw it on the screen. */
@@ -6317,11 +5124,7 @@ void SScreen::popupLabel(/*SScreen *screen, */
  * This pops up a message.
  */
 void SScreen::popupLabelAttrib(/*SScreen *screen, */
-#ifdef pneu
 			 std::vector<std::string> mesg
-#else
-			 CDK_CSTRING2 mesg, int count
-#endif
 		, chtype attrib)
 {
 //   SLabel *popup = 0;
@@ -6329,10 +5132,6 @@ void SScreen::popupLabelAttrib(/*SScreen *screen, */
    bool functionKey;
    /* Create the label. */
    SLabel popup(this,CENTER, CENTER, mesg, 
-#ifdef pneu
-#else
-			 count, 
-#endif
 			 TRUE, FALSE);
 //   popup.setCDKLabelBackgroundAttrib(attrib);
    popup.setBKattrObj(attrib);
@@ -6474,41 +5273,21 @@ void SFSelect::drawMyScroller(/*SFSelect *widget*/)
 void SFSelect::setPWD(/*SFSelect *fselect*/)
 {
    char buffer[512];
-#ifdef pneu
-#else
-   freeChecked(this->pwd);
-#endif
    if (!getcwd(buffer, sizeof(buffer)))
       strcpy(buffer, ".");
-#ifdef pneu
 	 this->pwd=buffer;
-#else
-   this->pwd = copyChar(buffer);
-#endif
 }
 
 /*
  * This opens the current directory and reads the contents.
  */
 int CDKgetDirectoryContents(const char *directory, 
-#ifdef pneu
 		vector<string> *plist
-#else
-		char ***list
-#endif
 		)
 {
 	/* Declare local variables.  */
 	struct dirent *dirStruct;
-#ifdef pneu
-#else
-	int counter = 0;
-#endif
 	DIR *dp;
-#ifdef pneu
-#else
-	unsigned used = 0;
-#endif
 	/* Open the directory.  */
 	dp = opendir(directory);
 	/* Could we open the directory?  */
@@ -6518,28 +5297,15 @@ int CDKgetDirectoryContents(const char *directory,
 	/* Read the directory.  */
 	while ((dirStruct = readdir(dp))) {
 		if (strcmp(dirStruct->d_name, "."))
-#ifdef pneu
       plist->push_back(dirStruct->d_name);
-#else
-			used = CDKallocStrings(list, dirStruct->d_name,(unsigned)counter++, used);
-#endif
 	}
 	/* Close the directory.  */
 	closedir(dp);
 	/* Sort the info.  */
-#ifdef pneu
 	sort(plist->begin(),plist->end());
-#else
-	sortList((CDK_CSTRING *)*list, counter);
-#endif
 	/* Return the number of files in the directory.  */
 	return 
-#ifdef pneu
 		plist->size();
-#else
-		counter
-#endif
-		;
 }
 
 int mode2Filetype(mode_t mode)
@@ -6575,19 +5341,6 @@ int mode2Filetype(mode_t mode)
 	return filetype;
 }
 
-#ifdef pneu
-#else
-char *format3String(const char *format, const char *s1, const char *s2, const char *s3)
-{
-	char *result;
-	if ((result =(char *)malloc(strlen(format) +
-					strlen(s1) +
-					strlen(s2) +
-					strlen(s3))))
-		sprintf(result, format, s1, s2, s3);
-	return result;
-}
-#endif
 
 /*
  * This creates a list of the files in the current directory.
@@ -6595,52 +5348,26 @@ char *format3String(const char *format, const char *s1, const char *s2, const ch
 int SFSelect::setCDKFselectdirContents(/*CDKFSELECT *fselect*/)
 {
 	struct stat fileStat;
-#ifdef pneu
 	vector<string> dirList;
-#else
-	char **dirList = 0;
-#endif
 	int fileCount;
 	/* Get the directory contents. */
 	fileCount = CDKgetDirectoryContents(this->pwd
-#ifdef pneu
 			.c_str()
-#else
-#endif
 			, &dirList);
 	if (fileCount <= 0) {
-#ifdef pneu
-#else
-		/* We couldn't read the directory. Return. */
-		CDKfreeStrings(dirList);
-#endif
 		return 0;
 	}
 	/* Clean out the old directory list. */
-#ifdef pneu
-#else
-	CDKfreeStrings(this->dirContents);
-	this->fileCounter = fileCount;
-#endif
 	this->dirContents = dirList;
 	/* Set the properties of the files. */
 	for (size_t x = 0; x < 
-#ifdef pneu
 			dirList.size()
-#else
-			this->fileCounter
-#endif
 			; x++) {
 		const char *attr = "";
 		const char *mode = "?";
 
 		/* FIXME: access() would give a more correct answer */
-		if (!lstat(dirList[x]
-#ifdef pneu
-					.c_str()
-#else
-#endif
-					, &fileStat)) {
+		if (!lstat(dirList[x].c_str(), &fileStat)) {
 			mode = " ";
 			if ((fileStat.st_mode & S_IXUSR)) {
 				mode = "*";
@@ -6655,53 +5382,34 @@ int SFSelect::setCDKFselectdirContents(/*CDKFSELECT *fselect*/)
 		switch (mode2Filetype(fileStat.st_mode)) {
 			case 'l':
 				attr = this->linkAttribute
-#ifdef pneu
 					.c_str()
-#else
-#endif
 					;
 				mode = "@";
 				break;
 			case '@':
 				attr = this->sockAttribute
-#ifdef pneu
 					.c_str()
-#else
-#endif
 					;
 				mode = "&";
 				break;
 			case '-':
 				attr = this->fileAttribute
-#ifdef pneu
 					.c_str()
-#else
-#endif
 					;
 				break;
 			case 'd':
 				attr = this->dirAttribute
-#ifdef pneu
 					.c_str()
-#else
-#endif
 					;
 				mode = "/";
 				break;
 			default:
 				break;
 		}
-#ifdef pneu
 		this->dirContents[x]=attr+dirList[x]+mode;
-#else
-		char *oldItem = dirList[x];
-		this->dirContents[x] = format3String("%s%s%s", attr, dirList[x], mode);
-		free(oldItem);
-#endif
 	}
 	return 1;
 }
-#ifdef pneu
 string make_pathname(const string& dir,const char* file)
 {
 	if (dir=="/") return dir+file;
@@ -6712,24 +5420,6 @@ string make_pathname(const char *dir,const string& file)
 	if (!strcmp(dir, "/")) return dir+file;
 	else return dir+("/"+file);
 }
-#else
-static char *make_pathname(const char *directory, const char *filename)
-{
-	size_t need = strlen(filename) + 2;
-	bool root =(!strcmp(directory, "/"));
-	char *result;
-
-	if (!root)
-		need += strlen(directory);
-	if ((result =(char *)malloc(need))) {
-		if (root)
-			sprintf(result, "/%s", filename);
-		else
-			sprintf(result, "%s/%s", directory, filename);
-	}
-	return result;
-}
-#endif
 
 /*
  * trim the 'mode' from a copy of a dirContents[] entry.
@@ -6759,33 +5449,17 @@ int fselectAdjustScrollCB(EObjectType objectType GCC_UNUSED,
 		/* Move the scrolling list. */
 		fselect->injectMyScroller(key);
 		/* Get the currently highlighted filename. */
-#ifdef pneu
 		current = scrollp->pitem[scrollp->currentItem].chtype2Char();
-#else
-		current = chtype2Char(scrollp->sitem[scrollp->currentItem]);
-#endif
 		trim1Char(current);
-#ifdef pneu
 		/* Set the value in the entry field. */
-		entry->setCDKEntryValue(make_pathname(fselect->pwd, current).c_str());
-#else
-		char *temp = make_pathname(fselect->pwd, current);
-		/* Set the value in the entry field. */
-		entry->setCDKEntryValue(temp);
-#endif
+		entry->setCDKEntryValue(make_pathname(fselect->pwd, current));
 		entry->drawCDKEntry(/*entry, ObjOf(entry)->*/entry->obbox);
-#ifdef pneu
-#else
-		freeChecked(current);
-		freeChecked(temp);
-#endif
 		return (TRUE);
 	}
 	Beep();
 	return (FALSE);
 }
 
-#ifdef pneu
 // Pfadname einer Datei
 //std::string dirName(const std::string& path)
 std::string dirName(string path)
@@ -6799,30 +5473,6 @@ std::string dirName(const char* pfad)
 	string path{pfad};
 	return dirName(path);
 } // std::string dir_name(std::string const & path)
-#else
-/*
- * Returns the directory for the given pathname, i.e., the part before the
- * last slash.
- */
-char *dirName(const char *pathname)
-{
-	char *dir = 0;
-	size_t pathLen;
-
-	/* Check if the string is null.  */
-	if (pathname
-			&&(dir = copyChar(pathname))
-			&&(pathLen = strlen(pathname)))
-	{
-		size_t x = pathLen;
-		while ((dir[x] != '/') &&(x > 0))
-		{
-			dir[x--] = '\0';
-		}
-	}
-	return dir;
-}
-#endif
 
 /*
  * This takes a ~ type account name and returns the full pathname.
@@ -6830,25 +5480,15 @@ char *dirName(const char *pathname)
 static const char *expandTilde(const char *filename)
 {
 	const char *result = 0;
-#ifdef pneu
 	std::string account,pathname;
-#else
-	char *account;
-	char *pathname;
-#endif
 	int len;
 
 	/* Make sure the filename is not null/empty, and begins with a tilde */
 	if ((filename) &&
 			(len =(int)strlen(filename)) &&
 			filename[0] == '~' &&
-#ifdef pneu
 			(account=filename,!account.empty())
 			&& (pathname=filename,!pathname.empty())
-#else
-			(account = copyChar(filename))
-				&& (pathname = copyChar(filename))
-#endif
 		)
 	{
 		bool slash = FALSE;
@@ -6869,22 +5509,12 @@ static const char *expandTilde(const char *filename)
 				account[len_a++] = filename[x];
 			}
 		}
-#ifdef pneu
 		account.resize(len_a);
 		pathname.resize(len_p);
-#else
-		account[len_a] = '\0';
-		pathname[len_p] = '\0';
-#endif
 
 		home = 0;
 #ifdef HAVE_PWD_H
-#ifdef pneu
 		if (!account.empty() && (accountInfo=getpwnam(account.c_str())))
-#else
-		if (strlen(account) &&
-				(accountInfo = getpwnam(account)))
-#endif
 		{
 			home = accountInfo->pw_dir;
 		}
@@ -6899,22 +5529,12 @@ static const char *expandTilde(const char *filename)
 		 * may have a pathname at the end of the account name
 		 * and we want to keep it.
 		 */
-#ifdef pneu
 		result = make_pathname(home, pathname).c_str();
-#else
-		result = make_pathname(home, pathname);
-#endif
 
-#ifdef pneu
-#else
-		freeChecked(account);
-		freeChecked(pathname);
-#endif
 	}
 	return result;
 }
 
-#ifdef pneu
 string format1String(const char* format, const char *stri)
 {
 	string ziel;
@@ -6923,21 +5543,8 @@ string format1String(const char* format, const char *stri)
 	ziel.resize(ziel.find((char)0));
 	return ziel;
 }
-#else
-static char *format1String(const char *format, const char *stri)
-{
-   char *result;
-   if ((result = (char *)malloc(strlen(format) + strlen(stri))))
-      sprintf(result, format, stri);
-   return result;
-}
-#endif
 
-#ifdef pneu
 string errorMessage(const char *format)
-#else
-static char *errorMessage(const char *format)
-#endif
 {
 	char *message;
 #ifdef HAVE_STRERROR
@@ -6948,7 +5555,6 @@ static char *errorMessage(const char *format)
 	return format1String(format, message);
 }
 
-#ifdef pneu
 string format1StrVal(const char* format, const char *stri, int value)
 {
 	string ziel;
@@ -6957,17 +5563,7 @@ string format1StrVal(const char* format, const char *stri, int value)
 	ziel.resize(ziel.find((char)0));
 	return ziel;
 }
-#else
-static char *format1StrVal(const char *format, const char *string, int value)
-{
-   char *result;
-   if ((result =(char *)malloc(strlen(format) + strlen(string) + 20)))
-      sprintf(result, format, string, value);
-   return result;
-}
-#endif
 
-#ifdef pneu
 string format1Number(const char* format, long value)
 {
 	string ziel;
@@ -6976,17 +5572,7 @@ string format1Number(const char* format, long value)
 	ziel.resize(ziel.find((char)0));
 	return ziel;
 }
-#else
-static char *format1Number(const char *format, long value)
-{
-   char *result;
-   if ((result =(char *)malloc(strlen(format) + 20)))
-      sprintf(result, format, value);
-   return result;
-}
-#endif
 
-#ifdef pneu
 string format1Date(const char* format, time_t value)
 {
 	string ziel;
@@ -6996,35 +5582,9 @@ string format1Date(const char* format, time_t value)
 	ziel.resize(ziel.find((char)0));
 	return ziel;
 }
-#else
-static char *format1Date(const char *format, time_t value)
-{
-   char *result;
-   char *temp = ctime(&value);
-   if ((result =(char *)malloc (strlen(format) + strlen(temp) + 1))) {
-      sprintf(result, format, trim1Char(temp));
-   }
-   return result;
-}
-#endif
 
 
 
-#ifdef pneu
-#else
-/*
- * Corresponding list freeing (does not free the list pointer).
- */
-void freeCharList(char **list, unsigned size)
-{
-	if (list) {
-		while (size--) {
-			freeChecked(list[size]);
-			list[size] = 0;
-		}
-	}
-}
-#endif
 
 /*
  * This erases the file selector from the screen.
@@ -7069,77 +5629,40 @@ void SFSelect::setCDKFselect(/*SFSelect *fselect,*/
 
 	/* Only do the directory stuff if the directory is not null. */
 	if (directory) {
-#ifdef pneu
 		string newDirectory;
-#else
-		const char *newDirectory;
-#endif
 
 		/* Try to expand the directory if it starts with a ~ */
 		if ((tempDir = expandTilde(directory))) {
 			newDirectory = tempDir;
 		} else {
-#ifdef pneu
 			newDirectory=directory;
-#else
-			newDirectory = copyChar(directory);
-#endif
 		}
 
 		/* Change directories. */
-#ifdef pneu
 		if (chdir(newDirectory.c_str())) {
 			vector<string> mesg(4);
-#else
-		if (chdir(newDirectory)) {
-			char *mesg[4];
-#endif
 			Beep();
 
 			/* Could not get into the directory, pop up a little message. */
 			mesg[0] = format1String("<C>Could not change into %s", newDirectory
-#ifdef pneu
 					.c_str()
-#else
-#endif
 					);
 			mesg[1] = errorMessage("<C></U>%s");
-#ifdef pneu
 			mesg[2]=" ";
 			mesg[3]="<C>Press Any Key To Continue.";
-#else
-			mesg[2] = copyChar(" ");
-			mesg[3] = copyChar("<C>Press Any Key To Continue.");
-#endif
 
 			/* Pop Up a message. */
 			screen->popupLabel(/*ScreenOf(this), */
-#ifdef pneu
 					mesg
-#else
-					(CDK_CSTRING2)mesg, 4
-#endif
 					);
 
 			/* Clean up some memory. */
-#ifdef pneu
-#else
-			freeCharList(mesg, 4);
-#endif
 
 			/* Get out of here. */
 			eraseCDKFselect(/*this*/);
 			drawCDKFselect(/*this, ObjOf(this)->*/obbox);
-#ifdef pneu
-#else
-			freeChecked((void*)newDirectory);
-#endif
 			return;
 		}
-#ifdef pneu
-#else
-		freeChecked((void*)newDirectory);
-#endif
 	}
 
 	/*
@@ -7149,41 +5672,13 @@ void SFSelect::setCDKFselect(/*SFSelect *fselect,*/
 	if (this->pwd != directory) {
 		setPWD(/*this*/);
 	}
-#ifdef pneu
 	this->fileAttribute=fileAttribute;
 	this->dirAttribute=dirAttribute;
 	this->linkAttribute=linkAttribute;
 	this->sockAttribute=sockAttribute;
-#else
-	if (this->fileAttribute != fileAttribute) {
-		/* Remove the old pointer and set the new value. */
-		freeChecked(this->fileAttribute);
-		this->fileAttribute = copyChar(fileAttribute);
-	}
-	if (this->dirAttribute != dirAttribute) {
-		/* Remove the old pointer and set the new value. */
-		freeChecked(this->dirAttribute);
-		this->dirAttribute = copyChar(dirAttribute);
-	}
-	if (this->linkAttribute != linkAttribute) {
-		/* Remove the old pointer and set the new value. */
-		freeChecked(this->linkAttribute);
-		this->linkAttribute = copyChar(linkAttribute);
-	}
-	if (this->sockAttribute != sockAttribute) {
-		/* Remove the old pointer and set the new value. */
-		freeChecked(this->sockAttribute);
-		this->sockAttribute = copyChar(sockAttribute);
-	}
-#endif
 
 	/* Set the contents of the entry field. */
-	fentry->setCDKEntryValue(/*fentry, */this->pwd
-#ifdef pneu
-			.c_str()
-#else
-#endif
-			);
+	fentry->setCDKEntryValue(/*fentry, */this->pwd);
 	fentry->drawCDKEntry(/*fentry, ObjOf(fentry)->*/obbox);
 
 	/* Get the directory contents. */
@@ -7194,12 +5689,7 @@ void SFSelect::setCDKFselect(/*SFSelect *fselect,*/
 
 	/* Set the values in the scrolling list. */
 	fscroll->setCDKScrollItems(/*fscroll,*/
-#ifdef pneu
 			 								&dirContents,
-#else
-			(CDK_CSTRING2)this->dirContents,
-			this->fileCounter,
-#endif
 			FALSE);
 }
 
@@ -7213,27 +5703,16 @@ const char *SFSelect::contentToPath(/*SFSelect *fselect, */const char *content)
 
 //   chtype *tempChtype = char2Chtypeh(content, &j, &j2);
 	 chtstr tempChtype(content,&j,&j2);
-#ifdef pneu
    tempChar = tempChtype.chtype2Char();
-#else
-   tempChar = chtype2Char(tempChtype.getinh());
-#endif
    trim1Char(tempChar);	/* trim the 'mode' stored on the end */
 
    /* Create the pathname. */
    const char *result = make_pathname(this->pwd,tempChar)
-#ifdef pneu
 			 .c_str()
-#else
-#endif
 			 ;
 
    /* Clean up. */
 //   freeChtype(tempChtype);
-#ifdef pneu
-#else
-   freeChecked(tempChar);
-#endif
    return result;
 }
 
@@ -7250,105 +5729,51 @@ static int completeFilenameCB(EObjectType objectType GCC_UNUSED,
 	SFSelect *fselect  = (SFSelect *)clientData;
 	SScroll *scrollp   = fselect->scrollField;
 	SEntry *entry      = fselect->entryField;
-#ifdef pneu
 	string filename(entry->efld);
 	string mydirname      = dirName(filename);
-#else
-	const char *filename       = copyChar(entry->efld);
-	char *mydirname      = dirName(filename);
-	size_t filenameLen   = 0;
-#endif
 	const char *newFilename    = 0;
 	int isDirectory;
-#ifdef pneu
 	vector<string> plist;
-#else
-	char **list;
-#endif
 
 	/* Make sure the filename is not null/empty. */
-#ifdef pneu
 	size_t filenameLen{filename.length()};
 	if (filename.empty()) {
-#else
-	if (filename == 0 || !(filenameLen = strlen(filename))) {
-#endif
 		Beep();
-#ifdef pneu
-#else
-		freeChecked((void*)filename);
-		freeChecked(mydirname);
-#endif
 		return (TRUE);
 	}
 
 	/* Try to expand the filename if it starts with a ~ */
-#ifdef pneu
 	if ((newFilename = expandTilde(filename.c_str()))) {
-#else
-	if ((newFilename = expandTilde(filename))) {
-		freeChecked((void*)filename);
-#endif
 		filename = newFilename;
-#ifdef pneu
-		entry->setCDKEntryValue(filename.c_str());
-#else
 		entry->setCDKEntryValue(filename);
-#endif
 		entry->drawCDKEntry(entry->obbox);
 	}
 
 	/* Make sure we can change into the directory. */
-#ifdef pneu
 	isDirectory = chdir(filename.c_str());
 	if (chdir(fselect->pwd.c_str())) {
-#else
-	isDirectory = chdir(filename);
-	if (chdir(fselect->pwd)) {
-		freeChecked((void*)filename);
-		freeChecked(mydirname);
-#endif
 		return FALSE;
 	}
 	fselect->setCDKFselect(/*fselect,*/
 			(isDirectory ? mydirname : filename)
-#ifdef pneu
 			.c_str()
-#else
-#endif
 			,
 			fselect->fieldAttribute,
 			fselect->fillerCharacter,
 			fselect->highlight,
 			fselect->dirAttribute
-#ifdef pneu
 			.c_str()
-#else
-#endif
 			,
 			fselect->fileAttribute
-#ifdef pneu
 			.c_str()
-#else
-#endif
 			,
 			fselect->linkAttribute
-#ifdef pneu
 			.c_str()
-#else
-#endif
 			,
 			fselect->sockAttribute
-#ifdef pneu
 			.c_str()
-#else
-#endif
 			,
 			ObjOf(fselect)->obbox);
-#ifdef pneu
-#else
-	freeChecked(mydirname);
-#endif
 
 	/* If we can, change into the directory. */
 	if (isDirectory) {
@@ -7356,35 +5781,20 @@ static int completeFilenameCB(EObjectType objectType GCC_UNUSED,
 		 * Set the entry field with the filename so the current
 		 * filename selection shows up.
 		 */
-#ifdef pneu
-		entry->setCDKEntryValue(/*entry, */filename.c_str());
-#else
 		entry->setCDKEntryValue(/*entry, */filename);
-#endif
 		entry->drawCDKEntry(/*entry, ObjOf(entry)->*/entry->obbox);
 	}
 
 	/* Create the file list. */
-#ifdef pneu
 		for (size_t x = 0; x < fselect->dirContents.size(); x++) {
 			plist.push_back(fselect->contentToPath(/*fselect,*/fselect->dirContents[x].c_str()));
-#else
-	if ((list = typeMallocN(char *, fselect->fileCounter))) {
-		for (size_t x = 0; x < fselect->fileCounter; x++) {
-			list[x] = (char*)fselect->contentToPath(/*fselect, */fselect->dirContents[x]);
-#endif
 		}
 
 		size_t Index;
 		/* Look for a unique filename match. */
 		Index = searchList(
-#ifdef pneu
 		&plist,
 				filename.c_str());
-#else
-				(CDK_CSTRING2)list, fselect->fileCounter, 
-				filename);
-#endif
 		/* If the index is less than zero, return we didn't find a match. */
 		if (Index < 0) {
 			Beep();
@@ -7405,18 +5815,9 @@ static int completeFilenameCB(EObjectType objectType GCC_UNUSED,
 
 			/* Ok, we found a match, is the next item similar? */
 			if (Index + 1 < fselect->
-#ifdef pneu
 					dirContents.size()
-#else
-					fileCounter 
-#endif
-#ifdef pneu
 					&& !plist[Index + 1].empty()
 					&& plist[Index + 1]==filename
-#else
-					&& list[Index + 1]
-					&& !strncmp(list[Index + 1], filename, filenameLen)
-#endif
 						) {
 				size_t currentIndex = Index;
 				int baseChars =(int)filenameLen;
@@ -7424,19 +5825,10 @@ static int completeFilenameCB(EObjectType objectType GCC_UNUSED,
 
 				/* Determine the number of files which match. */
 				while (currentIndex < fselect->
-#ifdef pneu
 					dirContents.size()
-#else
-						fileCounter
-#endif
 						) {
-#ifdef pneu
 					if (!plist[currentIndex].empty()) {
 					  if (filename==plist[currentIndex]) {
-#else
-					if (list[currentIndex]) {
-						if (!strncmp(list[currentIndex], filename, filenameLen)) {
-#endif
 							matches++;
 						}
 					}
@@ -7446,11 +5838,7 @@ static int completeFilenameCB(EObjectType objectType GCC_UNUSED,
 				for (;;) {
 					int secondaryMatches = 0;
 					for (size_t x = Index; x < Index + matches; x++) {
-#ifdef pneu
 						if (plist[Index][baseChars] == plist[x][baseChars]) {
-#else
-						if (list[Index][baseChars] == list[x][baseChars]) {
-#endif
 							secondaryMatches++;
 						}
 					}
@@ -7459,30 +5847,16 @@ static int completeFilenameCB(EObjectType objectType GCC_UNUSED,
 						break;
 					}
 					/* Inject the character into the entry field. */
-#ifdef pneu
 					fselect->entryField->injectCDKEntry(/*fselect->entryField,*/(chtype)plist[Index][baseChars]);
-#else
-					fselect->entryField->injectCDKEntry(/*fselect->entryField,*/(chtype)list[Index][baseChars]);
-#endif
 					baseChars++;
 				}
 			} else {
-				/* Set the entry field with the found item. */
-#ifdef pneu
-				entry->setCDKEntryValue(/*entry, */plist[Index].c_str());
-#else
-				entry->setCDKEntryValue(/*entry, */list[Index]);
-#endif
+				if (Index<plist.size())
+					/* Set the entry field with the found item. */
+					entry->setCDKEntryValue(/*entry, */plist[Index]);
 				entry->drawCDKEntry(/*entry, ObjOf(entry)->*/entry->obbox);
 			}
 		}
-#ifdef pneu
-#else
-		freeCharList(list,(unsigned)fselect->fileCounter);
-		free(list);
-	}
-	freeChecked((void*)filename);
-#endif
 	return(TRUE);
 }
 
@@ -7574,30 +5948,13 @@ static int displayFileInfoCB(EObjectType objectType GCC_UNUSED,
 	struct group *grEnt;
 #endif
 	const char *filetype;
-#ifdef pneu
 	string filename;
 	vector<string> mesg(9);
-#else
-	const char *filename;
-	char *mesg[9];
-#endif
 	char stringMode[15];
 	int intMode;
 	bool functionKey;
-#ifdef ineu
-#ifdef pneu
 	filename = fselect->entryField->efld;
-#else
-	filename = fselect->entryField->efld.c_str();
-#endif
-#else
-	filename = fselect->entryField->efld;
-#endif
-#ifdef pneu
 	if (!lstat(filename.c_str(), &fileStat)) {
-#else
-	if (!lstat(filename, &fileStat)) {
-#endif
 		switch (mode2Filetype(fileStat.st_mode)) {
 			case 'l':
 				filetype = "Symbolic Link";
@@ -7636,16 +5993,10 @@ static int displayFileInfoCB(EObjectType objectType GCC_UNUSED,
 	intMode = mode2Char(stringMode, fileStat.st_mode);
 	/* Create the message. */
 	mesg[0] = format1String("Directory  : </U>%s", fselect->pwd
-#ifdef pneu
 			.c_str()
-#else
-#endif
 			);
 	mesg[1] = format1String("Filename   : </U>%s", filename
-#ifdef pneu
 	.c_str()
-#else
-#endif
 	 );
 #ifdef HAVE_PWD_H
 	mesg[2] = format1StrVal("Owner      : </U>%s<!U> (%d)",
@@ -7666,20 +6017,12 @@ static int displayFileInfoCB(EObjectType objectType GCC_UNUSED,
 	/* Create the pop up label. */
 	infoLabel = new SLabel(entry->/*obj.*/screen,
 			CENTER, CENTER,
-#ifdef pneu
 			mesg,
-#else
-			 (CDK_CSTRING2)mesg,9, 
-#endif
 			TRUE, FALSE);
 	infoLabel->drawCDKLabel(/*infoLabel, */TRUE);
 	infoLabel->getchCDKObject(/*ObjOf(infoLabel), */&functionKey);
 	/* Clean up some memory. */
 	infoLabel->destroyCDKLabel(/*infoLabel*/);
-#ifdef pneu
-#else
-	freeCharList(mesg, 9);
-#endif
 	/* Redraw the file selector. */
 	fselect->drawCDKFselect(/*fselect, ObjOf(fselect)->*/fselect->obbox);
 	return (TRUE);
@@ -7772,27 +6115,15 @@ SFSelect::SFSelect(
 	/* *INDENT-EQLS* Set some variables. */
 	ScreenOf(this)           = cdkscreen;
 	this->parent              = cdkscreen->window;
-#ifdef pneu
 	this->dirAttribute				=	dAttribute;
 	this->fileAttribute       = fAttribute;
 	this->linkAttribute				= lAttribute;
 	this->sockAttribute				= sAttribute;
-#else
-	this->dirAttribute        = copyChar(dAttribute);
-	this->fileAttribute       = copyChar(fAttribute);
-	this->linkAttribute       = copyChar(lAttribute);
-	this->sockAttribute       = copyChar(sAttribute);
-#endif
 	this->highlight           = phighlight;
 	this->fillerCharacter     = fillerChar;
 	this->fieldAttribute      = fieldAttribute;
 	this->boxHeight           = boxHeight;
 	this->boxWidth            = boxWidth;
-#ifdef pneu
-#else
-	this->fileCounter         = 0;
-	this->pwd                 = 0;
-#endif
 //	initExitType(this);
 	exitType=vNEVER_ACTIVATED;
 	ObjOf(this)->inputWindow = this->win;
@@ -7865,12 +6196,7 @@ SFSelect::SFSelect(
 		  this);
 
    /* Put the current working directory in the entry field. */
-   entryField->setCDKEntryValue(/*this->entryField, */this->pwd
-#ifdef pneu
-			 .c_str()
-#else
-#endif
-			 );
+   entryField->setCDKEntryValue(/*this->entryField, */this->pwd);
 
    /* Create the scrolling list in the selector. */
    tempHeight = getmaxy(this->entryField->win) - borderSize;
@@ -7884,12 +6210,7 @@ SFSelect::SFSelect(
 					boxHeight - tempHeight,
 					tempWidth,
 					0,
-#ifdef pneu
 					&this->dirContents,
-#else
-					(CDK_CSTRING2)this->dirContents,
-					this->fileCounter,
-#endif
 					NONUMBERS, this->highlight,
 					Box, FALSE);
 

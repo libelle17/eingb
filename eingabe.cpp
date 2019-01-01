@@ -22,18 +22,11 @@ char *XCursesProgramName = "entry_ex";
 using namespace std;
 vector<string> erg;
 
-#ifdef pneu
 vector<string> userList,myUserList;
-#else
-static char **myUserList = 0;
-char **userList              = 0;
-#endif
 static int userSize;
 
 
-#ifdef pneu
 vector<string> myUndopList;
-#endif
 struct UNDO
 {
 	int deleted;			/* index in current list which is deleted */
@@ -50,18 +43,10 @@ static int XXXCB(EObjectType cdktype GCC_UNUSED,
 		void *clientData GCC_UNUSED,
 		chtype key GCC_UNUSED)
 {
-#ifdef pneu
 	vector<string> mesg(1);
-#else
-	const char* mesg[2];
-#endif
 	mesg[0]="Hilfefunktion";
 	((SScreen*)allgscr)->popupLabel(/*(SScreen*)allgscr,*/
-#ifdef pneu
 		mesg
-#else
-		(CDK_CSTRING2)mesg,1
-#endif
 		);
 //	printf("Hilfefunktion aufgerufen\n\r\n\r");
 	return(TRUE);
@@ -70,247 +55,27 @@ static int XXXCB(EObjectType cdktype GCC_UNUSED,
 /*
  * This reads the passwd file and retrieves user information.
  */
-static int getUserList(
-#ifdef pneu
-		vector<string> *plistp
-#else
-		char ***list
-#endif
-		)
+static int getUserList(vector<string> *plistp)
 {
 	int x = 0;
 #if defined(HAVE_PWD_H)
-#ifdef pneu
-#else
-	unsigned used = 0;
-#endif
 	struct passwd *ent;
 	errno=0;
 	endpwent();
 	while ((ent = getpwent())) {
-#ifdef pneu
 		plistp->push_back(ent->pw_name);
-#else
-		used = CDKallocStrings(list, ent->pw_name ,(unsigned)x++, used);
-#endif
 	}
 	if (errno) {
 		perror("Fehler beim Benutzerholen");
 	}
 	endpwent();
-#ifdef pneu
 	sort(plistp->begin(),plistp->end());
 	return plistp->size();
-#else
-#endif
 #endif
 	return x;
 }
 
 //#define brauchtsaano
-#ifdef brauchtsaano
-static void fill_undo(SAlphalist *widget,int deleted
-#ifdef pneu
-#else
-                                                     , char *data
-#endif
-                                                                 	)
-{
-//	int top = getCDKScrollCurrentTop(widget->scrollField);
-	//int top{widget->scrollField->currentTop};
-	int item{widget->getCDKAlphalistCurrentItem()};
-#ifdef pneu
-	vector<string>::const_iterator itd=next(widget->plist.begin(),item);
-	myUndopList.push_back(*itd);
-	widget->plist.erase(itd);
-#else
-	myUndoList[undoSize].deleted = deleted;
-	myUndoList[undoSize].topline = top;
-	myUndoList[undoSize].original = -1;
-	myUndoList[undoSize].position = item;
-	for (int n = 0; n < userSize; ++n) {
-		if (!strcmp(myUserList[n], data)) {
-			myUndoList[undoSize].original = n;
-			break;
-		}
-	}
-#endif
-	++undoSize;
-}
-#define CB_PARAMS EObjectType cdktype GCC_UNUSED, void* object GCC_UNUSED, void* clientdata GCC_UNUSED, chtype key GCC_UNUSED
-#ifdef falsch
-static int do_delete(CB_PARAMS)
-{
-	int result{FALSE};
-	SAlphalist *widget =(SAlphalist *)clientdata;
-#ifdef pneu
-//	vector<string> *list = widget->getCDKAlphalistContents();
-#else
-	int size;
-	char **list = widget->getCDKAlphalistContents(&size);
-#endif
-#ifdef pneu
-#else
-	if (size) {
-#endif
-//		int save = getCDKScrollCurrentTop(widget->scrollField);
-		int save=widget->scrollField->currentTop;
-		int first = widget->getCDKAlphalistCurrentItem();
-
-		fill_undo(widget, first
-#ifdef pneu
-#else
-														,list[first]
-#endif
-																	       );
-#ifdef pneu
-#else
-		for (int n = first; n < size; ++n)
-			list[n] = list[n + 1];
-		widget->setCDKAlphalistContents((CDK_CSTRING *)list, size - 1);
-#endif
-		widget->scrollField->setCDKScrollCurrentTop(save);
-		widget->setCDKAlphalistCurrentItem(first);
-		widget->drawCDKAlphalist(BorderOf(widget));
-		result = TRUE;
-#ifdef pneu
-#else
-	}
-#endif
-	return result;
-}
-#endif
-
-#ifdef falsch
-static int do_delete1(CB_PARAMS)
-{
-	int result{FALSE};
-	SAlphalist *widget =(SAlphalist *)clientdata;
-#ifdef pneu
-//	vector<string> *list = widget->getCDKAlphalistContents();
-#else
-	int size;
-	char **list = widget->getCDKAlphalistContents(&size);
-#endif
-#ifdef pneu
-	{
-#else
-	if (size) {
-#endif
-//		int save = getCDKScrollCurrentTop(widget->scrollField);
-		int save=widget->scrollField->currentTop;
-		int first = widget->getCDKAlphalistCurrentItem();
-
-		if (first-- > 0) {
-  		fill_undo(widget, first
-#ifdef pneu
-#else
-  														,list[first]
-#endif
-  																	       );
-#ifdef pneu
-#else
-			for (int n = first; n < size; ++n)
-				list[n] = list[n + 1];
-			widget->setCDKAlphalistContents((CDK_CSTRING *)list, size - 1);
-#endif
-			widget->scrollField->setCDKScrollCurrentTop(save);
-			widget->setCDKAlphalistCurrentItem(first);
-			widget->drawCDKAlphalist(BorderOf(widget));
-			result = TRUE;
-		}
-	}
-	return result;
-}
-#endif
-
-#ifdef falsch
-static int do_help(CB_PARAMS)
-{
-	static const char *message[] = {
-		"Alpha List tests:",
-		"",
-		"F1 = help (this message)",
-		"F2 = delete current item",
-		"F3 = delete previous item",
-		"F4 = reload all items",
-		"F5 = undo deletion",
-		0
-	};
-#ifdef pneu
-	vector<string> mesv(message,message+sizeof(message)/sizeof(*message));
-#endif
-	allgscr->popupLabel(
-#ifdef pneu
-			mesv
-#else
-			(CDK_CSTRING2)message,
-			(int)CDKcountStrings((CDK_CSTRING2)message)
-#endif
-			);
-	return TRUE;
-}
-#endif
-
-#ifdef falsch
-static int do_reload(CB_PARAMS)
-{
-	int result = FALSE;
-	if (userSize) {
-		SAlphalist *widget =(SAlphalist *)clientdata;
-		widget->setCDKAlphalistContents(
-#ifdef pneu
-                          					&myUserList
-#else
-                                            				(CDK_CSTRING *)myUserList, userSize
-#endif
-		                                                                                     );
-		widget->setCDKAlphalistCurrentItem(0);
-		widget->drawCDKAlphalist(BorderOf(widget));
-		result = TRUE;
-	}
-	return result;
-}
-#endif
-
-#ifdef falsch
-static int do_undo(CB_PARAMS)
-{
-	int result = FALSE;
-
-	if (undoSize > 0) {
-		SAlphalist *widget =(SAlphalist *)clientdata;
-#ifdef pneu
-		string zruck=*myUndopList.erase(myUndopList.end()-1);
-	  widget->plist.push_back(zruck);
-#else
-		int size;
-		int n;
-		char **oldlist = widget->getCDKAlphalistContents(&size);
-		char **newlist =(char **)malloc((size_t)(++size + 1) * sizeof(char *));
-
-		--undoSize;
-		newlist[size] = 0;
-		for (n = size - 1; n > myUndoList[undoSize].deleted; --n) {
-			newlist[n] = copyChar(oldlist[n - 1]);
-		}
-		newlist[n--] = copyChar(myUserList[myUndoList[undoSize].original]);
-		while(n >= 0) {
-			newlist[n] = copyChar(oldlist[n]);
-			--n;
-		}
-		widget->setCDKAlphalistContents((CDK_CSTRING *)newlist, size);
-		free(newlist);
-#endif
-		widget->scrollField->setCDKScrollCurrentTop(myUndoList[undoSize].topline);
-		widget->setCDKAlphalistCurrentItem(myUndoList[undoSize].position);
-		widget->drawCDKAlphalist(/*BorderOf(widget)*/widget->borderSize);
-		result = TRUE;
-	}
-	return result;
-}
-#endif
-#endif
 enum eingtyp {
 	eingfld,
 	auswfld,
@@ -352,39 +117,6 @@ struct hotkst {
 const int maxhk=sizeof hk/sizeof *hk;
 const int yabst=7;
 const int xpos=11;
-/*
-void zeichne(SScreen *cdkscreen,int Znr)
-{
-	bool obverschiebe=erstmals;
-	 if(Znr<ymin) {
-		 ymin-=(ymin-Znr);
-		 ymax-=(ymin-Znr);
-		 obverschiebe=1;
-	 } else if(Znr>=ymax) {
-		 ymin+=(Znr-ymax+1);
-		 ymax+=(Znr-ymax+1);
-		 obverschiebe=1;
-	 } 
-	 if(obverschiebe) {
-		 mvwprintw(cdkscreen->window,1,xpos,"mit Neuzeichnen: %i-%i, Znr: %i  ",ymin,ymax,Znr);
-		 for(int aktent=0;aktent<maxhk;aktent++) {
-			 if(aktent>=ymin && aktent<ymax) {
-				 hk[aktent].eingabef->obj.isVisible=1;
-				 if(hk[aktent].obalph)
-					 moveCDKAlphalist(((SAlphalist*)hk[aktent].eingabef),xpos,yabst+aktent-ymin,0,1);
-				 else
-					 moveCDKEntry(hk[aktent].eingabef,xpos,yabst+aktent-ymin,0,1);
-			 } else {
-				 hk[aktent].eingabef->obj.isVisible=0;
-			 }
-		 }
-	 }else {
-		 mvwprintw(cdkscreen->window,1,xpos,"ohne Neuzeichnen: %i-%i, Znr: %i  ",ymin,ymax,Znr);
-	 }
-	 refreshCDKScreen(cdkscreen);
-	 erstmals=0;
-}
-*/
 
 /*
  * This demonstrates the Cdk entry field widget.
@@ -402,47 +134,8 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Cannot get user list\n");
 		ExitProgram(EXIT_FAILURE);
 	}
-#ifdef pneu
 	myUserList = userList;
-#else
-	myUserList = copyCharList((const char **)userList);
-	myUndoList = (UNDO*)malloc((size_t) userSize * sizeof(UNDO));
-#endif
 	undoSize = 0;
-	/*
-		 SEntry *directory  = 0,*file=0;
-		 const char *title    = "<C>Gib aößä\n<C>dürectory name.";
-		 const char *ftit    = "<C>Dateiname.";
-		 const char *label    = "</R/U/6>Dürectory:<!R!6>";
-		 const char *flabel    = "</R/U/6>Dätei:<!R!6>";
-	 */
-	//const char *mesg[10];
-	//char temp0[256],temp[256];
-
-	/*
-	CDK_PARAMS params;
-	CDKparseParams(argc, argv, &params, CDK_MIN_PARAMS);
-	*/
-	/*
-		 CDKparamValue(&params, 'N', FALSE), CDKparamValue(&params, 'S', FALSE); CDKparamValue(&params, 'X', CENTER), CDKparamValue(&params, 'Y', CENTER),
-	 */
-	//	 cdkscreen->window->_maxx=300;
-	//	 cdkscreen->window->_scroll=1;
-	//	 scrollok(cdkscreen->window,TRUE);
-	//	 scroll(cdkscreen->window);
-	//	 for(int i=0;i<64;i++) mvwaddch(cdkscreen->window, 20+(i/8), 20+i, 'a'|COLOR_PAIR(i));
-	/*
-		 chtype wcol=COLOR_PAIR(11)|A_BLINK;
-		 wattron(cdkscreen->window,wcol); // wirkt nicht
-		 mvwprintw(cdkscreen->window,3,60,"%s","weltoffen");
-		 wattroff(cdkscreen->window,wcol); // wirkt nicht
-	 */
-
-	/* Create the entry field widget. */
-	//	 directory = newCDKEntry(cdkscreen,/*xplace*/xpos,/*yplace*/12, /*title*/"", label, A_UNDERLINE, '.', vMIXED, 30, 0, max,/*Box*/0,/*shadow*/0,/*highnr*/2);
-	//	 file = newCDKEntry(cdkscreen, xpos, 13, /*ftit*/"", flabel, A_NORMAL, '.', vMIXED, 30, 0, max,/*Box*/0,/*shadow*/0,/*highnr*/1);
-
-//	allgscr=cdkscreen=initCDKScreen(0);
   SScreen cscr(0);
 	allgscr=cdkscreen=&cscr;
 	/*static*/ int maxy=getmaxy(cdkscreen->window)-yabst;
@@ -486,13 +179,7 @@ int main(int argc, char **argv)
 			case auswfld:
 				hk[aktent].eingabef=
 					//newCDKAlphalist(cdkscreen,xpos,yabst+aktent,10,40,"",hk[aktent].label,(CDK_CSTRING*)userList,userSize,'.',A_REVERSE,0,0,hk[aktent].highinr);
-					new SAlphalist(cdkscreen,xpos,yabst+aktent,10,40,"",hk[aktent].label,
-#ifdef pneu
-						 &userList,
-#else
-							(CDK_CSTRING*)userList,userSize,
-#endif
-							'.',A_REVERSE,0,0,hk[aktent].highinr);
+					new SAlphalist(cdkscreen,xpos,yabst+aktent,10,40,"",hk[aktent].label, &userList, '.',A_REVERSE,0,0,hk[aktent].highinr);
 				break;
 			case eingfld:
 				hk[aktent].eingabef=
@@ -647,19 +334,10 @@ int main(int argc, char **argv)
 		//		 erg.push_back(hk[aktent].eingabef&&hk[aktent].eingabef->info?hk[aktent].eingabef->info:"");
 		const char *ueb=
 			hk[aktent].obalph==auswfld?
-#ifdef ineu
 			((SAlphalist*)hk[aktent].eingabef)->entryField->efld.c_str():
-#else
-			((SAlphalist*)hk[aktent].eingabef)->entryField->efld:
-#endif
 			hk[aktent].obalph==dteifld?
-#ifdef ineu
 			((SFSelect*)hk[aktent].eingabef)->entryField->efld.c_str():
 			((SEntry*)hk[aktent].eingabef)->efld.c_str();
-#else
-			((SFSelect*)hk[aktent].eingabef)->entryField->efld:
-			((SEntry*)hk[aktent].eingabef)->efld;
-#endif
 		erg.push_back(ueb);
 	}
 	/*

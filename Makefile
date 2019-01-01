@@ -4,7 +4,7 @@ DPROG::=efld
 KR::=/dev/null 2>&1
 KF::= 2>/dev/null
 CFLAGS::=-c -Wall
-CFLAGS::=$(CFLAGS) -I. -I$$HOME/cdk/include -I/usr/include/ncursesw 
+CFLAGS::=$(CFLAGS) -g -I. -I$$HOME/cdk/include -I/usr/include/ncursesw 
 LDFLAGS::=-lncursesw
 EXEC::=$(DPROG)
 ICH::=$(firstword $(MAKEFILE_LIST))
@@ -34,7 +34,11 @@ reset::="\033[0m"
 
 .PHONY: all
 all: anzeig weiter
-
+.PHONY: neu
+neu: loesche all
+.PHONY: loesche
+loesche:
+	rm $(EXEC) *.o
 .PHONY: anzeig
 anzeig:
 # 'echo -e' geht nicht z.B. in ubuntu

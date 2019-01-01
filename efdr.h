@@ -467,15 +467,6 @@ typedef int(*PROCESSFN)(
 /*
  * This is the key binding prototype, typed for use with Perl.
  */
-#ifdef false
-#define BINDFN_PROTO(func)  \
-	int (func) ( \
-		EObjectType	/* cdktype */, \
-		void *		/* object */, \
-		void *		/* clientData */, \
-		chtype		/* input */)
-typedef BINDFN_PROTO(*BINDFN);
-#endif
 typedef int (*BINDFN)(EObjectType,void*,void*,chtype);
 
 struct CDKBINDING {
@@ -498,13 +489,7 @@ typedef bool(*CHECK_KEYCODE)(int /* keyCode */, int /* functionKey */);
 struct SScreen 
 { // SScreen
    WINDOW *		window;
-#define pneu
-#ifdef pneu
 	 std::vector<CDKOBJS*> object;// CDKOBJS
-#else
-   CDKOBJS**	object; // CDKOBJS
-   int			objectLimit;	/* sizeof(object[]) */
-#endif
    int			objectCount;	/* last-used index in object[] */
    EExitStatus		exitStatus;
    int			objectFocus;	/* focus index in object[] */
@@ -530,18 +515,10 @@ struct SScreen
 	 void traverseCDKOnce(/*SScreen *screen,*/ CDKOBJS *curobj, int keyCode, bool functionKey, CHECK_KEYCODE funcMenuKey);
 	 int traverseCDKScreen(/*SScreen *screen*/);
 	 void popupLabel(/*SScreen *screen, */
-#ifdef pneu
 			 std::vector<std::string> mesg
-#else
-			 CDK_CSTRING2 mesg, int count
-#endif
 			 );
 	 void popupLabelAttrib(/*SScreen *screen, */
-#ifdef pneu
 			 std::vector<std::string> mesg
-#else
-			 CDK_CSTRING2 mesg, int count
-#endif
 			 , chtype attrib);
 	 virtual void refreshCDKScreen();
 };
@@ -567,14 +544,8 @@ int floorCDK(double value);
 int ceilCDK(double value);
 int setWidgetDimension(int parentDim, int proposedDim, int adjustment);
 //static int encodeAttribute(const char *string, int from, chtype *mask);
-#ifdef pneu
 void aufSplit(std::vector<std::string> *tokens, const char* const text, const char sep=' ',bool auchleer=1);
 void aufSplit(std::vector<std::string> *tokens, const std::string& text, const char sep=' ',bool auchleer=1);
-#else
-char **CDKsplitString(const char *string, int separator);
-//static unsigned countChar(const char *string, int separator);
-unsigned CDKcountStrings(CDK_CSTRING2 list);
-#endif
 chtype *char2Chtype(const char *string, int *to, int *align);
 int chlen(const chtype *string);
 void freeChtype(chtype *string);
@@ -589,11 +560,6 @@ void attrbox(WINDOW *win, chtype tlc, chtype trc, chtype blc, chtype brc, chtype
 void drawShadow(WINDOW *shadowWin);
 int getcCDKBind(EObjectType cdktype GCC_UNUSED, void *object GCC_UNUSED, void *clientData GCC_UNUSED, chtype input GCC_UNUSED);
 void refreshCDKWindow(WINDOW *win);
-#ifdef pneu
-#else
-char *copyChar(const char *original);
-chtype *copyChtype(const chtype *original);
-#endif
 void eraseCursesWindow(WINDOW *window);
 void deleteCursesWindow(WINDOW *window);
 void moveCursesWindow(WINDOW *window, int xdiff, int ydiff);
@@ -609,53 +575,18 @@ static int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UN
 			   void *clientData,
 			   chtype key GCC_UNUSED);
 						*/
-#ifdef pneu
-#else
-char *chtype2Char(const chtype *string);
-#endif
-int searchList(
-//#define pneu
-#ifdef pneu
-		std::vector<std::string> *plistp,
-#else
-		CDK_CSTRING2 list, int listSize, 
-#endif
-		const char *pattern);
+int searchList(std::vector<std::string> *plistp, const char *pattern);
 // unsigned CDKallocStrings(char ***list, char *item, unsigned length, unsigned used);
-#ifdef pneu
-void
-#else
-unsigned 
-#endif
-CDKallocStrings(
-#ifdef pneu
-		std::vector<std::string> *plistp,
-#else
-		char ***list, 
-#endif
-		char *item
-#ifdef pneu
-#else
-		, unsigned length, unsigned used
-#endif
-		);
+void CDKallocStrings(std::vector<std::string> *plistp, char *item);
 void writeBlanks(WINDOW *window, int xpos, int ypos, int align, int start, int end);
 void writeChar(WINDOW *window, int xpos, int ypos, const char *string, int align, int start, int end);
 void writeCharAttrib(WINDOW *window, int xpos, int ypos, const char *string, chtype attr, int align, int start, int end);
 //static bool checkMenuKey(int keyCode, int functionKey);
 CDKOBJS* switchFocus(CDKOBJS *newobj, CDKOBJS *oldobj);
-#ifdef pneu
-#else
-char **copyCharList(const char **list);
-#endif
 int lenCharList(const char **list);
 void initCDKColor(void);
 void endCDK(void);
-#ifdef pneu
 std::string errorMessage(const char *format);
-#else
-static char *errorMessage(const char *format);
-#endif
 void freeCharList(char **list, unsigned size);
 //static int displayFileInfoCB(EObjectType objectType GCC_UNUSED, void *object, void *clientData, chtype key GCC_UNUSED);
 int mode2Char(char *string, mode_t mode);
@@ -682,9 +613,7 @@ class chtstr
 	// chtype *char2Chtypeh(const char *string, int *to, int *align, int highinr=0);
 	chtstr(const char *string, int *to, int *align, const int highnr=0);
 	int rauskopier(chtype **ziel);
-#ifdef pneu
 	char *chtype2Char();
-#endif
 	inline chtype *getinh() const { return inh; }
 	inline size_t getlen() const { return len; }
 };
@@ -712,14 +641,8 @@ struct CDKOBJS
    WINDOW *     inputWindow;
    void *       dataPtr;
    CDKDataUnion resultData;
-#define bneu
-#ifdef bneu
 	 std::map<chtype,CDKBINDING> bindv;
 	 std::map<chtype,CDKBINDING>::const_iterator bindvit;
-#else
-   unsigned     bindingCount=0;
-   CDKBINDING * bindingList=0;
-#endif
    /* title-drawing */
 //   chtype **	title=0;
 	 std::vector<chtstr> titles;
@@ -791,11 +714,7 @@ struct CDKOBJS
 	 bool validObjType(EObjectType type);
 	 void registerCDKObject(SScreen *screen, EObjectType cdktype);
 	 void reRegisterCDKObject(EObjectType cdktype/*, void *object*/);
-#ifdef pneu
 	 void setScreenIndex(SScreen *pscreen);
-#else
-	 void setScreenIndex(SScreen *pscreen, int number);
-#endif
 	 void drawObjBox(WINDOW *win);
 	 int getcCDKObject();
 	 int getchCDKObject(bool *functionKey);
@@ -827,15 +746,7 @@ struct SEntry:CDKOBJS
    int		titleAdj;
    chtype	fieldAttr;
    int		fieldWidth;
-#ifdef pneu
-#define qneu
-#define ineu
-#endif
-#ifdef ineu
 	 std::string efld/*info*/;
-#else
-   char *	efld/*info*/;
-#endif
    int		infoWidth;
    int		screenCol;
    int    sbuch; // GSchade
@@ -861,11 +772,7 @@ struct SEntry:CDKOBJS
    bool	shadow;
    chtype	filler;
    chtype	hidden;
-#ifdef pneu
 	 std::string GPasteBuffer;
-#else
-	 char *GPasteBuffer = 0;
-#endif
 	 void		*callbackData;
 	 /*
 		* This creates a pointer to a new CDK entry widget.
@@ -895,6 +802,7 @@ struct SEntry:CDKOBJS
 	 void cleanCDKEntry();
 	 int injectCDKEntry(chtype);
 	 int injectObj(chtype ch){return injectCDKEntry(ch);}
+	 void setCDKEntryValue(std::string newValue);
 	 void setCDKEntryValue(const char *newValue);
 	 void eraseCDKEntry();
 	 void eraseObj(){eraseCDKEntry();}
@@ -914,16 +822,10 @@ struct SScroll_basis:public CDKOBJS
 	WINDOW * scrollbarWin; 
 	WINDOW * shadowWin; 
 	int      titleAdj;   /* unused */ 
-#ifdef pneu
 	std::vector<chtstr> pitem;
 	std::vector<chtstr>::const_iterator piter;
 	std::vector<int> itemLen;
 	std::vector<int> itemPos;
-#else
-	chtype **    sitem=0; 
-	int *    itemLen=0; 
-	int *    itemPos=0; 
-#endif
 
 	int      currentTop; 
 	int      currentItem; 
@@ -934,9 +836,6 @@ struct SScroll_basis:public CDKOBJS
 	int      maxchoicelen; 
 	int      leftChar; 
 	int      lastItem; 
-#ifdef pneu
-#else
-#endif
 	int      listSize=0; 
 	int      boxWidth; 
 	int      boxHeight; 
@@ -988,12 +887,7 @@ struct SScroll:SScroll_basis
 			int		/* height */,
 			int		/* width */,
 			const char *	/* title */,
-#ifdef pneu
 			 std::vector<std::string> *plistp,
-#else
-			 CDK_CSTRING2 list/* itemList */,
-			 int		/* items */,
-#endif
 			bool		/* numbers */,
 			chtype		/* highlight */,
 			bool		/* Box */,
@@ -1002,23 +896,8 @@ struct SScroll:SScroll_basis
 	void destroyObj(){this->~SScroll();}
 	void eraseCDKScroll/*_eraseCDKScroll*/(/*CDKOBJS *object*/);
 	void eraseObj(){eraseCDKScroll();}
-	int createCDKScrollItemList(bool numbers, 
-#ifdef pneu
-						std::vector<std::string> *plistp
-#else
-				    CDK_CSTRING2 list,
-				    int listSize
-#endif
-			);
-#ifdef pneu
-#else
-	bool allocListArrays(int oldSize, int newSize);
-#endif
+	int createCDKScrollItemList(bool numbers,std::vector<std::string> *plistp);
 	bool allocListItem(int which, 
-#ifdef pneu
-#else
-                          			char **work, size_t * used, 
-#endif
                                                       			int number, const char *value);
 	int injectCDKScroll(/*CDKOBJS *object, */chtype input);
 	int injectObj(chtype ch){return injectCDKScroll(ch);}
@@ -1029,24 +908,8 @@ struct SScroll:SScroll_basis
 	 void drawObj(bool Box);
 	 void drawCDKScrollCurrent();
 	 void moveCDKScroll(int xplace, int yplace, bool relative, bool refresh_flag);
-	 void setCDKScroll(
-#ifdef pneu
-               			 std::vector<std::string> *plistp,
-#else
-              			 CDK_CSTRING2 list, int listSize, 
-#endif
-                                               			 bool numbers, chtype hl, bool Box);
-#ifdef pneu
-#else
-	 int getCDKScrollItems(/*SScroll *scrollp, */char **list);
-#endif
-	 void setCDKScrollItems(
-#ifdef pneu
-													 std::vector<std::string> *plistp,
-#else
-													 CDK_CSTRING2 list, int listSize, 
-#endif
-																													 bool numbers);
+	 void setCDKScroll(std::vector<std::string> *plistp, bool numbers, chtype hl, bool Box);
+	 void setCDKScrollItems(std::vector<std::string> *plistp, bool numbers);
 	 void setCDKScrollCurrentTop(/*SScroll *widget, */int item);
 	 void setCDKScrollCurrent(int item);
 	 void setBKattrScroll(chtype attrib);
@@ -1054,10 +917,6 @@ struct SScroll:SScroll_basis
 	 //void setCDKScrollBox(/*SScroll *scrollp, */bool Box);
 	 //bool getCDKScrollBox();
 	 void resequence(/*SScroll *scrollp*/);
-#ifdef pneu
-#else
-	 bool insertListItem(/*SScroll *scrollp, */int item);
-#endif
 	 void addCDKScrollItem(/*SScroll *scrollp,*/ const char *item);
 	 void insertCDKScrollItem(/*SScroll *scrollp, */const char *item);
 	 void deleteCDKScrollItem(/*SScroll *scrollp, */int position);
@@ -1070,30 +929,15 @@ struct SScroll:SScroll_basis
 
 
 int fselectAdjustScrollCB(EObjectType objectType GCC_UNUSED, void *object GCC_UNUSED, void *clientData, chtype key);
-#ifdef pneu
 std::string format1String(const char* format, const char *string);
 std::string format1StrVal(const char* format, const char *string, int value);
 std::string format1Number(const char* format, long value);
 std::string format1Date(const char* format, time_t value);
-#else
-static char *format1String(const char *format, const char *string);
-static char *format1StrVal(const char *format, const char *string, int value);
-static char *format1Number(const char *format, long value);
-static char *format1Date(const char *format, time_t value);
-#endif
 //static const char *expandTilde(const char *filename);
-#ifdef pneu
 std::string dirName(std::string path);
 std::string dirName(const char* pfad);
-#else
-char *dirName(const char *pathname);
-#endif
 //static char *trim1Char(char *source);
 //static char *make_pathname(const char *directory, const char *filename);
-#ifdef pneu
-#else
-char *format3String(const char *format, const char *s1, const char *s2, const char *s3);
-#endif
 int mode2Filetype(mode_t mode);
 int CDKgetDirectoryContents(const char *directory, char ***list);
 /*
@@ -1116,19 +960,9 @@ struct SFSelect:CDKOBJS
 	SEntry *	entryField;
 	SScroll *	scrollField;
 	CDKOBJS* bindableObject();
-#ifdef pneu
 	std::vector<std::string> dirContents;
 	std::string pwd;
-#else
-	char **	dirContents;
-	int		fileCounter;
-	char *	pwd;
-#endif
-#ifdef pneu
 	std::string pfadname;
-#else
-	char *	pathname;
-#endif
 	int		xpos;
 	int		ypos;
 	int		boxHeight;
@@ -1136,17 +970,10 @@ struct SFSelect:CDKOBJS
 	chtype	fieldAttribute;
 	chtype	fillerCharacter;
 	chtype	highlight;
-#ifdef pneu
 	std::string dirAttribute;
 	std::string fileAttribute;
 	std::string linkAttribute;
 	std::string sockAttribute;
-#else
-	char *	dirAttribute;
-	char *	fileAttribute;
-	char *	linkAttribute;
-	char *	sockAttribute;
-#endif
 	bool	shadow;
 /*
  * This creates a new CDK file selector widget.
@@ -1200,12 +1027,7 @@ struct SAlphalist:CDKOBJS
    WINDOW*	shadowWin;
    SEntry*	entryField;
    SScroll*	scrollField;
-#ifdef pneu
 	 std::vector<std::string> plist;
-#else
-   char **	slist=0;
-   int		listSize;
-#endif
    int		xpos;
    int		ypos;
    int		height;
@@ -1216,10 +1038,6 @@ struct SAlphalist:CDKOBJS
    chtype	fillerChar;
    bool	shadow;
 	 CDKOBJS* bindableObject();
-#ifdef pneu
-#else
-	 int createList(CDK_CSTRING *list, int listSize);
-#endif
 	 SAlphalist(SScreen *cdkscreen,
 			 int xplace,
 			 int yplace,
@@ -1227,12 +1045,7 @@ struct SAlphalist:CDKOBJS
 			 int width,
 			 const char *title,
 			 const char *label,
-#ifdef pneu
 			 std::vector<std::string> *plistp,
-#else
-			 CDK_CSTRING *list,
-			 int listSize,
-#endif
 			 chtype fillerChar,
 			 chtype highlight,
 			 bool Box,
@@ -1254,31 +1067,9 @@ struct SAlphalist:CDKOBJS
 	 void eraseCDKAlphalist();
 	 void eraseObj(){eraseCDKAlphalist();}
 	 void destroyInfo();
-	 void setCDKAlphalist(
-#ifdef pneu
-			 std::vector<std::string> *plistp,
-#else
-			 CDK_CSTRING *list, int listSize, 
-#endif
-			 chtype fillerChar, chtype highlight, bool Box);
-	 void setCDKAlphalistContents(
-#ifdef pneu
-		      std::vector<std::string> *plistp
-#else
-			 CDK_CSTRING *list, int listSize
-#endif
-			 );
-#ifdef pneu
-std::vector<std::string> *
-#else
-char ** 
-#endif
-                   getCDKAlphalistContents(
-#ifdef pneu
-#else
-                                        	 int *size
-#endif
-                                                 		);
+	 void setCDKAlphalist(std::vector<std::string> *plistp, chtype fillerChar, chtype highlight, bool Box);
+	 void setCDKAlphalistContents(std::vector<std::string> *plistp);
+	 std::vector<std::string> *getCDKAlphalistContents();
 	 int getCDKAlphalistCurrentItem();
 	 void setCDKAlphalistCurrentItem(int item);
 	 void setCDKAlphalistFillerChar(chtype fillerCharacter);
@@ -1340,16 +1131,10 @@ struct SLabel:CDKOBJS {
    WINDOW *	parent;
    WINDOW *	win;
    WINDOW *	shadowWin;
-#ifdef pneu
 	std::vector<chtstr> pinfo;
 	std::vector<chtstr>::const_iterator pitinfo;
 	std::vector<int> infoLen;
 	std::vector<int> infoPos;
-#else
-   chtype **	sinfo;
-   int *	infoLen;
-   int *	infoPos;
-#endif
    int		boxWidth;
    int		boxHeight;
    int		xpos;
@@ -1357,33 +1142,17 @@ struct SLabel:CDKOBJS {
    int		rows;
    bool	shadow;
 	 SLabel(SScreen *cdkscreen, int xplace, int yplace, 
-#ifdef pneu
 			 std::vector<std::string> mesg
-#else
-			 CDK_CSTRING2 mesg, int rows
-#endif
 			 , bool Box, bool shadow);
 	 void setCDKLabelBox(/*SLabel *label, */bool Box);
 	 bool getCDKLabelBox(/*SLabel *label*/);
 	 void activateCDKLabel(/*SLabel *label, */chtype *actions GCC_UNUSED);
 	 void setCDKLabel(/*SLabel *label, */
-#ifdef pneu
 			 std::vector<std::string> mesg
-#else
-			 CDK_CSTRING2 mesg, int lines
-#endif
 			 , bool Box);
 	 void setCDKLabelMessage(/*SLabel *label, */
-#ifdef pneu
 			 std::vector<std::string> s_info
-#else
-			 CDK_CSTRING2 s_info, int infoSize
-#endif
 			 );
-#ifdef pneu
-#else
-	 chtype **getCDKLabelMessage(/*SLabel *label, */int *size);
-#endif
 	 void setBKattrLabel(chtype attrib);
 	 void setBKattrObj(chtype attrib);
 	 void drawCDKLabel(/*CDKOBJS *object, */bool Box GCC_UNUSED);
