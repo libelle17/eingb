@@ -1,0 +1,9 @@
+#!/bin/bash
+VZ=~/cdk
+VZI=$VZ/include
+VZ=$PWD
+LISTE="eingabe.cpp efdr.cpp efdr.h"
+for d in $LISTE; do PAR="$PAR $VZ/$d"; done
+ctags -R . ~/cdk /usr/include/cdk /usr/local/include/cdk /usr/include/ncursesw ~/ncurses
+vi $PAR Makefile $0 -pNu .exrc
+
