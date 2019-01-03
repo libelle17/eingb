@@ -9,7 +9,7 @@
 #ifdef HAVE_PWD_H
 #include <pwd.h>
 #endif
-SScreen *allgscr;
+//SScreen *allgscr;
 
 #ifdef HAVE_XCURSES
 char *XCursesProgramName = "entry_ex";
@@ -24,6 +24,7 @@ vector<string> erg;
 
 vector<string> userList,myUserList;
 static int userSize;
+bool obende{0};
 
 
 vector<string> myUndopList;
@@ -37,6 +38,52 @@ struct UNDO
 //static UNDO *myUndoList;
 static int undoSize;
 
+static int rfende(EObjectType cdktype GCC_UNUSED,
+		void *object,
+		void *clientData GCC_UNUSED,
+		chtype key GCC_UNUSED)
+{
+	{
+		/* Create the message within the dialog box. */
+		const char *const msg[]{
+			"Sie haben RETURN gedrückt.",
+			"Sind Sie </B/32>fertig?<!B!32>",
+		};
+		vector<string> msgv{msg,msg+sizeof msg/sizeof *msg};
+		const char *const buttonsstr[] {
+			"</B16>Nein",
+				"</B/24>Ja", 
+		};
+		vector<string> buttons{buttonsstr,buttonsstr+sizeof(buttonsstr)/sizeof(*buttonsstr)};
+
+		/* Create the dialog box. */
+		SDialog *question = new SDialog(((CDKOBJS*)object)->screen,
+				5,5,
+				&msgv,
+				&buttons,
+				COLOR_PAIR(2) | A_REVERSE,
+				TRUE,
+				TRUE, FALSE
+				);
+
+		/* Check if we got a null value back. */
+		if (question) {
+			/* Activate the dialog box. */
+			/*int selection = */question->activateCDKDialog(0);
+			if (question->exitType!=vESCAPE_HIT && question->currentButton==1) {
+				((CDKOBJS*)object)->earlyExit=vNORMAL;
+				obende=1;
+			}
+			/* Clean up. */
+			question->destroyCDKDialog();
+			//			wrefresh(allgscr->window);
+//			refreshCDKWindow(allgscr->window);
+			((CDKOBJS*)object)->screen->refreshCDKScreen();
+		}
+	}
+	return TRUE;
+}
+
 // static BINDFN_PROTO(XXXCB);
 static int XXXCB(EObjectType cdktype GCC_UNUSED,
 		void *object GCC_UNUSED,
@@ -45,9 +92,7 @@ static int XXXCB(EObjectType cdktype GCC_UNUSED,
 {
 	vector<string> mesg(1);
 	mesg[0]="Hilfefunktion";
-	((SScreen*)allgscr)->popupLabel(/*(SScreen*)allgscr,*/
-		mesg
-		);
+	((CDKOBJS*)object)->screen->popupLabel(/*(SScreen*)allgscr,*/ mesg);
 //	printf("Hilfefunktion aufgerufen\n\r\n\r");
 	return(TRUE);
 }
@@ -137,12 +182,13 @@ int main(int argc, char **argv)
 	myUserList = userList;
 	undoSize = 0;
   SScreen cscr(0);
-	allgscr=cdkscreen=&cscr;
+	/*allgscr=*/cdkscreen=&cscr;
 	/*static*/ int maxy=getmaxy(cdkscreen->window)-yabst;
 	/*static*/ int maxh=maxy>maxhk?maxhk:maxy;
 	/*static*/ int ymin=0;
 	/*static*/ int ymax=maxh;
-	/*static*/ bool erstmals=1;
+	bool erstmals=1;
+	int Znr=0;
 	// static size_t maxy=getmaxy(cdkscreen->window)-yabst;
 	// static size_t maxh=maxy>maxhk?maxhk:maxy;
 	/* Start CDK colors. */
@@ -179,22 +225,21 @@ int main(int argc, char **argv)
 			case auswfld:
 				hk[aktent].eingabef=
 					//newCDKAlphalist(cdkscreen,xpos,yabst+aktent,10,40,"",hk[aktent].label,(CDK_CSTRING*)userList,userSize,'.',A_REVERSE,0,0,hk[aktent].highinr);
-					new SAlphalist(cdkscreen,xpos,yabst+aktent,10,40,"",hk[aktent].label, &userList, '.',A_REVERSE,0,0,hk[aktent].highinr);
+					new SAlphalist(cdkscreen,xpos,yabst+aktent,10,40,"",hk[aktent].label, &userList, '.',A_REVERSE,0,0,hk[aktent].highinr,aktent);
 				break;
 			case eingfld:
 				hk[aktent].eingabef=
 					//newCDKEntry(cdkscreen,xpos,yabst+aktent,"",hk[aktent].label,A_NORMAL,'.',vMIXED,30,0,maxlen,0,0,hk[aktent].highinr);
-					new SEntry(cdkscreen,xpos,yabst+aktent,"",hk[aktent].label,A_NORMAL,'.',vMIXED,30,0,maxlen,0,0,hk[aktent].highinr);
-				hk[aktent].eingabef->bindCDKObject(/*vENTRY, hk[aktent].eingabef, */'?', XXXCB, 0);
+					new SEntry(cdkscreen,xpos,yabst+aktent,"",hk[aktent].label,A_NORMAL,'.',vMIXED,30,0,maxlen,0,0,hk[aktent].highinr,aktent);
 				break;
 			case dteifld:
 				hk[aktent].eingabef=
 					//newCDKEntry(cdkscreen,xpos,yabst+aktent,"",hk[aktent].label,A_NORMAL,'.',vMIXED,30,0,maxlen,0,0,hk[aktent].highinr);
-					new SFSelect(cdkscreen,xpos,yabst+aktent,20,65,"",hk[aktent].label,A_NORMAL,'.',A_REVERSE,"</5>","</48>","</N>","</N>",TRUE,FALSE,hk[aktent].highinr);
-				hk[aktent].eingabef->bindCDKObject(/*vENTRY, hk[aktent].eingabef, */'?', XXXCB, 0);
+					new SFSelect(cdkscreen,xpos,yabst+aktent,20,65,"",hk[aktent].label,A_NORMAL,'.',A_REVERSE,"</5>","</48>","</N>","</N>",TRUE,FALSE,hk[aktent].highinr,aktent);
 				break;
-
 		}
+//		hk[aktent].eingabef->bindCDKObject(/*vENTRY, hk[aktent].eingabef, */KEY_RETURN, rfende, 0);
+		hk[aktent].eingabef->bindCDKObject(/*vENTRY, hk[aktent].eingabef, */KEY_F2, XXXCB, 0);
 		/* Is the widget null? */
 		if (!hk[aktent].eingabef) {
 			/* Clean up. */
@@ -203,7 +248,7 @@ int main(int argc, char **argv)
 			printf ("Cannot create the entry box. Is the window too small, aktent: %lu   \n",aktent);
 			ExitProgram(EXIT_FAILURE);
 		}
-	}
+	} // 	for(size_t aktent=0;aktent<maxhk;aktent++)
 
 	/*
 	 * Pass in whatever was given off of the command line. Notice we
@@ -213,7 +258,7 @@ int main(int argc, char **argv)
 	//setCDKEntry(hk[0].eingabef, argv[optind], 0, max, TRUE);
 
 	/* Activate the entry field. */
-	int Znr=0,Zweitzeichen=0,Drittzeichen=0;
+	int Zweitzeichen=0,Drittzeichen=0;
 	while (1) {
 		akteinbart=einb_direkt;
 		/* Draw the screen. */
@@ -261,19 +306,20 @@ int main(int argc, char **argv)
 		erstmals=0;
 		//char *info;
 		// mvwprintw(cdkscreen->window,30,60,"<R>werde eingegeben:%i %i ",info,Zweitzeichen);
-					switch (hk[Znr].obalph) {
-						case auswfld:
-			akteinbart=einb_alphalist;
-			/*info=*/((SAlphalist*)hk[Znr].eingabef)->activateCDKAlphalist(/*(SAlphalist*)hk[Znr].eingabef, */0,&Zweitzeichen, &Drittzeichen,/*obpfeil*/0);
-			(((SAlphalist*)hk[Znr].eingabef)->scrollField)->eraseCDKScroll(/*((SAlphalist*)hk[Znr].eingabef)->scrollField*/);
-							break;
-						case eingfld:
-			/*info = */((SEntry*)hk[Znr].eingabef)->activateCDKEntry(/*hk[Znr].eingabef, */0,&Zweitzeichen, &Drittzeichen,/*obpfeil*/1);
-							break;
-						case dteifld:
-			/*info = */((SFSelect*)hk[Znr].eingabef)->activateCDKFselect(/*hk[Znr].eingabef, */0);
-							break;
-					}
+		switch (hk[Znr].obalph) {
+			case auswfld:
+				akteinbart=einb_alphalist;
+				/*info=*/((SAlphalist*)hk[Znr].eingabef)->activateCDKAlphalist(/*(SAlphalist*)hk[Znr].eingabef, */0,&Zweitzeichen, &Drittzeichen,/*obpfeil*/0);
+				(((SAlphalist*)hk[Znr].eingabef)->scrollField)->eraseCDKScroll(/*((SAlphalist*)hk[Znr].eingabef)->scrollField*/);
+				break;
+			case eingfld:
+				/*info = */((SEntry*)hk[Znr].eingabef)->activateCDKEntry(/*hk[Znr].eingabef, */0,&Zweitzeichen, &Drittzeichen,/*obpfeil*/1);
+				break;
+			case dteifld:
+				/*info = */((SFSelect*)hk[Znr].eingabef)->activateCDKFselect(/*hk[Znr].eingabef, */0,&Zweitzeichen, &Drittzeichen,/*obpfeil*/0);
+				break;
+		}
+		if (obende) break;
 		//#ifdef mdebug
 		/*
 			 mesg[0] = "<C>Letzte Eingabe:";

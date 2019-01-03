@@ -10,7 +10,9 @@
 #include <errno.h> // errno
 #include <iostream> // cout
 #include <algorithm> // sort
+#include <fstream> // ofstream
 using namespace std;
+extern struct hotkst hk[];
 
 void chtstr::gibaus() const
 { 
@@ -474,11 +476,6 @@ int chlen(const chtype *string)
 			result++;
 	}
 	return (result);
-}
-
-void freeChtype(chtype *string)
-{
-	freeChecked(string);
 }
 
 /*
@@ -1508,7 +1505,7 @@ void CDKOBJS::unregisterCDKObject(EObjectType cdktype/*, void *object*/)
 		if (screen) {
 			int Index = (this)->screenIndex;
 			this->screenIndex = -1;
-			screen->object.erase(screen->object.begin()+screenIndex);
+			screen->object.erase(screen->object.begin()+Index);
 			if (--screen->objectCount>0) {
 				if (screen->objectFocus == Index) {
 					screen->objectFocus--;
@@ -1785,17 +1782,33 @@ void SFSelect::moveCDKFselect(/*CDKOBJS *object,*/
  * from the keyboard, and when it's done, it fills the entry info
  * element of the structure with what was typed.
  */
-const char *SFSelect::activateCDKFselect(/*SFSelect *fselect, */chtype *actions)
+const char *SFSelect::activateCDKFselect(/*SFSelect *fselect, */chtype *actions,int *Zweitzeichen/*=0*/,int *Drittzeichen/*=0*/,int obpfeil/*=0*/)
 {
+	const char *ret = 0;
+#ifndef false
+   /* Draw the widget. */
+   drawCDKFselect(obbox,/*obmitscroller*/1);
+   /* Activate the widget. */
+   ret = entryField->activateCDKEntry(actions,Zweitzeichen,Drittzeichen,obpfeil);
+   /* Copy the exit type from the entry field. */
+//   copyExitType(this, this->entryField);
+	 exitType=entryField->exitType;
+   /* Determine the exit status. */
+   if (this->exitType != vEARLY_EXIT) {
+      return ret;
+   }
+   return 0;
+#else
+
 	chtype input = 0;
 	bool functionKey;
-	const char *ret = 0;
 	/* Draw the widget. */
-	drawCDKFselect(/*fselect, ObjOf(fselect)->*/obbox);
+	drawCDKFselect(/*fselect, ObjOf(fselect)->*/obbox); //   ret = entryField->activateCDKEntry(actions,Zweitzeichen,Drittzeichen,obpfeil);
 	if (!actions) {
 		for (;;) {
 			input =(chtype)getchCDKObject(/*ObjOf(fselect->entryField), */&functionKey);
 			/* Inject the character into the widget. */
+			// if (input==KEY_BTAB) return ret;
 			ret=injectCDKFselect(input)?resultData.valueString:0/*unknownString*/;
 			if (this->exitType != vEARLY_EXIT) {
 				return ret;
@@ -1814,6 +1827,7 @@ const char *SFSelect::activateCDKFselect(/*SFSelect *fselect, */chtype *actions)
 	/* Set the exit type and exit. */
 	setExitType(/*fselect, */0);
 	return 0;
+#endif
 }
 
 /*
@@ -1889,18 +1903,6 @@ SFSelect::~SFSelect()
 {
 //      SAlphalist *alphalist = (SAlphalist *)object;
 
-	/*
-      destroyInfo();
-      cleanCDKObjectBindings();
-//      destroyCDKEntry(this->entryField);
-			entryField->~SEntry();
-//      destroyCDKScroll(this->scrollField);
-			scrollField->~SScroll();
-      deleteCursesWindow(this->shadowWin);
-      deleteCursesWindow(this->win);
-      unregisterCDKObject(vALPHALIST);
-			*/
-
 //   if (object) {
 //      SFSelect *fselect =(SFSelect *)object;
 
@@ -1944,8 +1946,6 @@ void SAlphalist::setCDKAlphalistPostProcess(
    entryField->setCDKObjectPostProcess(callback, data);
 }
 
-
-
 /*
  * This function draws the scrolling list widget.
  */
@@ -1959,11 +1959,19 @@ void SScroll::drawCDKScroll(bool Box,bool obmit)
    /* Draw in the scolling list items. */
 	 // Kommentar GSchade 0 11.11.18
 	 // GSchade: auskommentieren und dann noch vor dem Wechsel zu anderem alle übrigen zeichnen
-	 if (akteinbart==einb_alphalist &&obmit) {
-		 drawCDKScrollList(Box); wrefresh(parent); // gleichbedeutend: wrefresh(obj.screen->window);
-	 }
+	 // if (akteinbart==einb_alphalist &&obmit) KLA
+//	 if (obmit && Znr==mutter->objnr && !erstmals) KLA
+		 drawCDKScrollList(Box); 
+		 wrefresh(parent); // gleichbedeutend: wrefresh(obj.screen->window);
+		 /*
+		 static int nr=0;
+		 ofstream prot;
+		 prot.open("protok.txt",ios::out|ios::app);
+     prot<<nr++<<": Znr: "<<Znr<<", mutter->objnr: "<<mutter->objnr<<", erstmals: "<<erstmals<<", obmit: "<<obmit<<endl;
+		 prot.close();
+		 */
+	 // KLZ
 }
-
 
 /*
  * This function destroys
@@ -1980,7 +1988,7 @@ SScroll::~SScroll(/*CDKOBJS *object*/)
 		/* Clean the key bindings. */
 		cleanCDKObjectBindings();
 		/* Unregister this object. */
-		unregisterCDKObject(vSCROLL);
+//		unregisterCDKObject(vSCROLL); s.Konstruktor
 }
 
 void aufSplit(vector<string> *tokens, const char* const text, const char sep/*=' '*/,bool auchleer/*=1*/)
@@ -2086,7 +2094,6 @@ bool CDKOBJS::validObjType(EObjectType type)
 		case vBUTTON:
 		case vBUTTONBOX:
 		case vCALENDAR:
-		case vDIALOG:
 		case vDSCALE:
 		case vENTRY:
 		case vFSCALE:
@@ -2112,6 +2119,7 @@ bool CDKOBJS::validObjType(EObjectType type)
 		case vVIEWER:
 			valid = TRUE;
 			break;
+		case vDIALOG: // fuehrt zum Absturz
 		case vTRAVERSE:		/* not really an object */
 		case vNULL:
 			break;
@@ -2431,7 +2439,8 @@ SEntry::SEntry(SScreen *cdkscreen,
 		bool Box,
 		bool shadowp,
 		// GSchade Anfang
-		int highnr/*=0*/
+		int highnr/*=0*/,
+		int aktent/*=-1*/
 		// GSchade Ende
 		):fieldWidth(fWidth),boxWidth(0)
 {
@@ -2448,6 +2457,7 @@ SEntry::SEntry(SScreen *cdkscreen,
 
 	//	if ((entry = newCDKObject(SEntry, &my_funcs)) == 0) return (0);
 	::CDKOBJS();
+	objnr=aktent;
 	setBox(Box);
 	boxHeight =(borderSize * 2) + 1;
 
@@ -2532,7 +2542,7 @@ SEntry::SEntry(SScreen *cdkscreen,
 				infoWidth = maxp + 3;
 
 				/* *INDENT-EQLS* Set up the rest of the structure. */
-				ScreenOf(this)        = cdkscreen;
+				screen        = cdkscreen;
 				parent                = cdkscreen->window;
 				shadowWin             = 0;
 				fieldAttr             = fieldAttrp;
@@ -2586,6 +2596,8 @@ const char* SEntry::activateCDKEntry(chtype *actions,int *Zweitzeichen/*=0*/,int
 	if (!Zweitzeichen) Zweitzeichen=&zweit;
 	/* Draw the widget. */
 	drawCDKEntry(/*entry, ObjOf(entry)->*/obbox);
+	// 3.1.18: bei Return pruefen, ob Teil von Alphalist oder FSelect, ob Schalter zur Anzeige der Auswahlen eingestellt; falls ja, umstellen und nicht aufhoeren (vEARLY_EXIT),
+	// falls FSelect, dann dort inject, andernfalls Rückfrage zum Schluss 
 	if (!actions) {
 		for (;;) {
 			//static int y=2;
@@ -2664,11 +2676,10 @@ const char* SEntry::activateCDKEntry(chtype *actions,int *Zweitzeichen/*=0*/,int
  */
 const char* SAlphalist::activateCDKAlphalist(chtype *actions,int *Zweitzeichen/*=0*/,int *Drittzeichen/*=0*/,int obpfeil/*=0*/)
 {
-   const char *ret = 0;
    /* Draw the widget. */
-   drawCDKAlphalist(obbox);
+   drawCDKAlphalist(obbox,/*obmitscroller*/1);
    /* Activate the widget. */
-   ret = entryField->activateCDKEntry(actions,Zweitzeichen,Drittzeichen,obpfeil);
+   const char *ret = entryField->activateCDKEntry(actions,Zweitzeichen,Drittzeichen,obpfeil);
    /* Copy the exit type from the entry field. */
 //   copyExitType(this, this->entryField);
 	 exitType=entryField->exitType;
@@ -3622,7 +3633,7 @@ static int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UN
 				 CENTER, CENTER, RIGHT, height, -30,
 				 "<C></B/5>Possible Matches.",
 				 &altWords,
-				 NUMBERS, A_REVERSE, TRUE, FALSE);
+				 NUMBERS, A_REVERSE, 0, TRUE, FALSE);
 
 		 /* Allow them to select a close match. */
 		 match = scrollp->activateCDKScroll(0);
@@ -3834,7 +3845,8 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 			       bool Box,
 						 bool shadow,
 						 // GSchade Anfang
-						 int highnr/*=0*/
+						 int highnr/*=0*/,
+						 int aktent/*=-1*/
 						 // GSchade Ende
 		): plist(*plistp),xpos(xplace),ypos(yplace),highlight(phighlight),fillerChar(fillerChar),shadow(shadow)
 {
@@ -3855,6 +3867,7 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 	/* *INDENT-ON* */
 
 	::CDKOBJS();
+	objnr=aktent;
 	setBox(Box);
 	/*
 	 * If the height is a negative value, the height will
@@ -3963,6 +3976,7 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 			tempWidth, 0, 
 			plistp,
 			NONUMBERS, A_REVERSE,
+			this,
 			Box, FALSE);
 //	setCDKScrollULChar(this->scrollField, ACS_LTEE);
    ULChar=ACS_LTEE;
@@ -3990,7 +4004,7 @@ void SAlphalist::drawMyScroller(/*SAlphalist *widget*/)
 /*
  * This draws the file selector widget.
  */
-void SAlphalist::drawCDKAlphalist(bool Box GCC_UNUSED)
+void SAlphalist::drawCDKAlphalist(bool Box GCC_UNUSED, bool obmitscroller/*=0*/)
 {
 //   SAlphalist *alphalist =(SAlphalist *)obj;
    /* Does this widget have a shadow? */
@@ -4001,7 +4015,8 @@ void SAlphalist::drawCDKAlphalist(bool Box GCC_UNUSED)
    entryField->drawObj(entryField->obbox);
    /* Draw in the scroll field. */
 	 // Kommentar GSchade 11.11.18: bewirkt, dass der Scroller erst gezeichnet wird, wenn in ihm ein Tastendruck erfolgt, z.B. Pfeil nach unten
-   this->drawMyScroller();
+	 if (obmitscroller)
+		 this->drawMyScroller();
 }
 
 
@@ -4167,8 +4182,9 @@ SScroll::SScroll(SScreen *cdkscreen,
 			 vector<string> *plistp,
 			 bool numbers,
 			 chtype phighlight,
+			 CDKOBJS *pmutter,
 			 bool Box,
-			 bool pshadow)
+			 bool pshadow):mutter(pmutter?pmutter:this)
 {
 	size_t listSize{plistp->size()};
 	cdktype=vSCROLL;
@@ -4312,7 +4328,7 @@ SScroll::SScroll(SScreen *cdkscreen,
 		    (chtype)bindings[x].from,
 		     getcCDKBind,
 		    (void *)(long)bindings[x].to);
-   registerCDKObject(cdkscreen, vSCROLL);
+   // registerCDKObject(cdkscreen, vSCROLL); // 3.1.19: wird sonst bei refreshCDKScreen zu oft gezeichnet 
    /* Return the scrolling list */
 //   return this;
 }
@@ -4813,9 +4829,7 @@ SLabel::SLabel(SScreen *cdkscreen,
    boxHeight = rows + 2 * /*BorderOf(label)*/ borderSize;
 
    /* Determine the box width. */
-   for (size_t x = 0; x < 
-			 mesg.size()
-			 ; x++) {
+   for (size_t x = 0; x < mesg.size() ; x++) {
       /* Translate the char * to a chtype. */
 //      /*label->*/info[x] = char2Chtypeh(mesg[x], &/*label->*/infoLen[x], &/*label->*/infoPos[x]);
 		 int len,pos;
@@ -4989,7 +5003,7 @@ void SLabel::drawCDKLabel(/*CDKOBJS *object, */bool Box GCC_UNUSED)
    }
    /* Refresh the window. */
    wrefresh(/*label->*/win);
-}
+} // SLabel::drawCDKLabel
 
 /*
  * This erases the label widget.
@@ -5229,7 +5243,7 @@ void SScroll::setBKattrObj(chtype attrib)
 /*
  * This draws the file selector widget.
  */
-void SFSelect::drawCDKFselect(/*CDKOBJS *object, */bool Box GCC_UNUSED)
+void SFSelect::drawCDKFselect(/*CDKOBJS *object, */bool Box GCC_UNUSED, bool obmitscroller/*=0*/)
 {
 //   SFSelect *fselect =(SFSelect *)object;
 
@@ -5242,7 +5256,8 @@ void SFSelect::drawCDKFselect(/*CDKOBJS *object, */bool Box GCC_UNUSED)
    entryField->drawCDKEntry(/*fselect->entryField, ObjOf(fselect->entryField)->*/obbox);
 
    /* Draw in the scroll field. */
-   drawMyScroller(/*fselect*/);
+	 if (obmitscroller)
+		 drawMyScroller(/*fselect*/);
 }
 
 /*
@@ -6050,7 +6065,9 @@ SFSelect::SFSelect(
 		const char *sAttribute,
 		bool Box,
 		bool shadow,
-		int highnr)
+		int highnr/*=0*/,
+		int aktent/*=-1*/
+		)
 {
 	cdktype = vFSELECT;
 	/* *INDENT-EQLS* */
@@ -6079,6 +6096,7 @@ SFSelect::SFSelect(
 
 //	if ((fselect = newCDKObject(SFSelect, &my_funcs)) == 0) return (0);
 	::CDKOBJS();
+	objnr=aktent;
 	setBox(Box);
 
 	/*
@@ -6113,7 +6131,7 @@ SFSelect::SFSelect(
 	keypad(this->win, TRUE);
 
 	/* *INDENT-EQLS* Set some variables. */
-	ScreenOf(this)           = cdkscreen;
+	screen           = cdkscreen;
 	this->parent              = cdkscreen->window;
 	this->dirAttribute				=	dAttribute;
 	this->fileAttribute       = fAttribute;
@@ -6212,6 +6230,7 @@ SFSelect::SFSelect(
 					0,
 					&this->dirContents,
 					NONUMBERS, this->highlight,
+					this,
 					Box, FALSE);
 
    /* Set the lower left/right characters of the entry field. */
@@ -6238,3 +6257,449 @@ SFSelect::SFSelect(
 //   return (this);
 }
 
+/*
+ * This function creates a dialog widget.
+ */
+SDialog::SDialog(SScreen *cdkscreen,
+			 int xplace,
+			 int yplace,
+			 vector<string> *mesg,
+			 vector<string> *buttonLabel,
+			 chtype highlight,
+			 bool separator,
+			 bool obBox,
+			 bool shadow)
+{
+   /* *INDENT-EQLS* */
+   // CDKDIALOG *dialog    = 0;
+   int boxHeight;
+   int boxWidth         = MIN_DIALOG_WIDTH;
+   int maxmessagewidth  = -1;
+   int buttonwidth      = 0;
+   int xpos             = xplace;
+   int ypos             = yplace;
+//   int temp             = 0;
+   int buttonadj        = 0;
+
+	 ::CDKOBJS();
+	 setBox(obBox);
+   boxHeight = mesg->size() + 2 * borderSize + separator + 1;
+
+   for (size_t x = 0; x < mesg->size() ; x++) {
+		 /* Translate the char * message to a chtype * */
+		 int len,pos;
+		 chtstr infoneu(mesg->at(x).c_str(),&len,&pos);
+		 pinfo.insert(pinfo.begin()+x,infoneu);
+		 infoLen.insert(infoLen.begin()+x,len);
+		 infoPos.insert(infoPos.begin()+x,pos);
+		 maxmessagewidth  = MAXIMUM(maxmessagewidth, /*label->*/infoLen[x]);
+	 }
+   maxmessagewidth += 2 * /*BorderOf(label)*/ borderSize;
+
+   /* Translate the button label char * to a chtype * */
+	 for (size_t x = 0; x < buttonLabel->size(); x++) {
+		 int len,pos;
+		 chtstr buttonneu(buttonLabel->at(x).c_str(),&len,&pos);
+		 pbutton.insert(pbutton.begin()+x,buttonneu);
+		 buttonLen.insert(buttonLen.begin()+x,len);
+		 buttonPos.insert(buttonPos.begin()+x,pos);
+		 buttonwidth            += this->buttonLen[x] + 1;
+	 }
+	 buttonwidth--;
+
+	 /* Determine the final dimensions of the box. */
+	 boxWidth = MAXIMUM (boxWidth, maxmessagewidth);
+	 boxWidth = MAXIMUM (boxWidth, buttonwidth);
+	 boxWidth = boxWidth + 2 + 2 * borderSize;
+
+	 /* Now we have to readjust the x and y positions. */
+	 alignxy(cdkscreen->window, &xpos, &ypos, boxWidth, boxHeight);
+
+   /* *INDENT-EQLS* Set up the dialog box attributes. */
+   screen            = cdkscreen;
+   this->parent               = cdkscreen->window;
+   this->win                  = newwin (boxHeight, boxWidth, ypos, xpos);
+   this->shadowWin            = 0;
+   this->currentButton        = 0;
+   this->boxHeight            = boxHeight;
+   this->boxWidth             = boxWidth;
+   this->highlight            = highlight;
+   this->separator            = separator;
+   // initExitType (this);
+	 exitType=vNEVER_ACTIVATED;
+	 acceptsFocus = TRUE;
+   inputWindow  = this->win;
+   this->shadow               = shadow;
+
+   /* If we couldn't create the window, we should return a null value. */
+   if (!this->win) {
+      destroyCDKObject();
+      return;
+   }
+   keypad(this->win, TRUE);
+
+   /* Find the button positions. */
+   buttonadj = ((int)((boxWidth - buttonwidth) / 2));
+   for (size_t x = 0; x < pbutton.size(); x++) {
+      this->buttonPos[x] = buttonadj;
+      buttonadj = buttonadj + this->buttonLen[x] + borderSize/*BorderOf (this)*/;
+   }
+
+   /* Create the string alignments. */
+   for (size_t x = 0; x < pinfo.size(); x++) {
+      this->infoPos[x] = justifyString (boxWidth - 2 * borderSize/*BorderOf (this)*/,
+					  this->infoLen[x],
+					  this->infoPos[x]);
+   }
+
+   /* Was there a shadow? */
+   if (shadow) {
+      this->shadowWin = newwin(boxHeight, boxWidth, ypos + 1, xpos + 1);
+   }
+   /* Register this baby. */
+   registerCDKObject(cdkscreen, vDIALOG/*, this*/);
+   /* Return the dialog box pointer. */
+//   return (this);
+}
+
+
+/*
+ * This lets the user select the button.
+ */
+int SDialog::activateCDKDialog(/*CDKDIALOG *dialog, */chtype *actions)
+{
+	chtype input = 0;
+	bool functionKey;
+	int ret;
+
+	/* Draw the dialog box. */
+	drawCDKDialog(/*dialog, ObjOf (dialog)->*/obbox);
+
+	/* Lets move to the first button. */
+	writeChtypeAttrib (this->win,
+			this->buttonPos[this->currentButton],
+			this->boxHeight - 1 - borderSize,
+			this->pbutton[this->currentButton].getinh(),
+			this->highlight,
+			HORIZONTAL,
+			0, this->buttonLen[this->currentButton]);
+	wrefresh(this->win);
+
+	if (!actions) {
+		for (;;) {
+			input = (chtype)getchCDKObject(/*ObjOf (this), */&functionKey);
+			/* Inject the character into the widget. */
+			ret = injectCDKDialog(/*this, */input);
+			if (this->exitType != vEARLY_EXIT) {
+				return ret;
+			}
+		}
+	} else {
+		int length = chlen(actions);
+		/* Inject each character one at a time. */
+		for (int x = 0; x < length; x++) {
+			ret = injectCDKDialog(/*this, */actions[x]);
+			if (this->exitType != vEARLY_EXIT) {
+				return ret;
+			}
+		}
+	}
+	/* Set the exit type and exit. */
+	setExitType(0);
+	return -1;
+}
+
+/*
+ * This injects a single character into the dialog widget.
+ */
+int SDialog::injectCDKDialog(/*CDKOBJS *object, */chtype input)
+{
+	/* *INDENT-EQLS* */
+	//   CDKDIALOG *widget = (CDKDIALOG *)object;
+	int lastButton    = pbutton.size()/*this->buttonCount*/ - 1;
+	int ppReturn      = 1;
+	int ret           = unknownInt;
+	bool complete     = FALSE;
+
+	/* Set the exit type. */
+	setExitType(0);
+
+	/* Check if there is a pre-process function to be called. */
+	if ((preProcessFunction)) {
+		ppReturn = (preProcessFunction) (vDIALOG,
+				this,
+				PreProcessDataOf (this),
+				input);
+	}
+
+	/* Should we continue? */
+	if (ppReturn) {
+		/* Check for a key binding. */
+		if (checkCDKObjectBind(/*vDIALOG, this, */input) != 0) {
+			//checkEarlyExit(this);
+			complete = TRUE;
+		} else {
+			int firstButton = 0;
+			switch (input) {
+				case KEY_LEFT:
+				case KEY_BTAB:
+				case KEY_BACKSPACE:
+					if (this->currentButton == firstButton) {
+						this->currentButton = lastButton;;
+					} else {
+						this->currentButton--;
+					}
+					break;
+				case KEY_RIGHT:
+				case KEY_TAB:
+				case SPACE:
+					if (this->currentButton == lastButton) {
+						this->currentButton = firstButton;
+					} else {
+						this->currentButton++;
+					}
+					break;
+				case KEY_UP:
+				case KEY_DOWN:
+					Beep();
+					break;
+				case CDK_REFRESH:
+					screen->eraseCDKScreen(/*ScreenOf (this)*/);
+					screen->refreshCDKScreen(/*ScreenOf (this)*/);
+					break;
+				case KEY_ESC:
+					setExitType(/*this, */input);
+					complete = TRUE;
+					break;
+				case KEY_ERROR:
+					setExitType(/*this, */input);
+					complete = TRUE;
+					break;
+				case KEY_ENTER:
+					setExitType(/*this, */input);
+					ret = this->currentButton;
+					complete = TRUE;
+					break;
+				default:
+					break;
+			}
+		}
+		/* Should we call a post-process? */
+		if (!complete && (PostProcessFuncOf (this) != 0)) {
+			PostProcessFuncOf (this) (vDIALOG,
+					this,
+					PostProcessDataOf (this),
+					input);
+		}
+	}
+	if (!complete) {
+		drawCDKDialogButtons(/*widget*/);
+		wrefresh(this->win);
+		setExitType(/*this, */0);
+	}
+	this->resultData.valueInt = ret;
+//	return(ret != unknownInt);
+	return ret;
+}
+
+/*
+ * This moves the dialog field to the given location.
+ */
+void SDialog::moveCDKDialog(/*CDKOBJS *object,*/
+			    int xplace,
+			    int yplace,
+			    bool relative,
+			    bool refresh_flag)
+{
+//   CDKDIALOG *dialog = (CDKDIALOG *)object;
+   /* *INDENT-EQLS* */
+   int currentX = getbegx (this->win);
+   int currentY = getbegy (this->win);
+   int xpos     = xplace;
+   int ypos     = yplace;
+   int xdiff    = 0;
+   int ydiff    = 0;
+
+   /*
+    * If this is a relative move, then we will adjust where we want
+    * to move to.
+    */
+   if (relative) {
+      xpos = getbegx(this->win) + xplace;
+      ypos = getbegy(this->win) + yplace;
+   }
+
+   /* Adjust the window if we need to. */
+   alignxy (WindowOf(this), &xpos, &ypos, this->boxWidth, this->boxHeight);
+
+   /* Get the difference. */
+   xdiff = currentX - xpos;
+   ydiff = currentY - ypos;
+
+   /* Move the window to the new location. */
+   moveCursesWindow(this->win, -xdiff, -ydiff);
+   moveCursesWindow(this->shadowWin, -xdiff, -ydiff);
+
+   /* Touch the windows so they 'move'. */
+   refreshCDKWindow(WindowOf(this));
+
+   /* Redraw the window, if they asked for it. */
+   if (refresh_flag) {
+      drawCDKDialog(/*this, ObjOf (this)->*/obbox);
+   }
+}
+
+/*
+ * This function draws the dialog widget.
+ */
+void SDialog::drawCDKDialog(/*CDKOBJS *object, */bool obBox)
+{
+   /* Is there a shadow? */
+   if (this->shadowWin) {
+      drawShadow(this->shadowWin);
+   }
+   /* Box the widget if they asked. */
+   if (obBox) {
+      drawObjBox(this->win/*, ObjOf (this)*/);
+   }
+   /* Draw in the message. */
+   for (size_t x = 0; x < this->pinfo.size(); x++) {
+      writeChtype(this->win,
+		   this->infoPos[x] + borderSize, x + borderSize,
+		   this->pinfo[x].getinh(),
+		   HORIZONTAL, 0,
+		   this->infoLen[x]);
+   }
+   /* Draw in the buttons. */
+   drawCDKDialogButtons(/*dialog*/);
+   wrefresh(this->win);
+}
+
+/*
+ * This function destroys the dialog widget.
+ */
+void SDialog::destroyCDKDialog(/*CDKOBJS *object*/)
+{
+	//   if (object != 0) {
+	/* Clean up the windows. */
+	deleteCursesWindow(win);
+	deleteCursesWindow(shadowWin);
+	/* Clean the key bindings. */
+	cleanCDKObjectBindings(/*vDIALOG, dialog*/);
+
+	/* Unregister this object. */
+	unregisterCDKObject(vDIALOG/*, dialog*/);
+	//   }
+}
+
+/*
+ * This function erases the dialog widget from the screen.
+ */
+void SDialog::eraseCDKDialog(/*CDKOBJS *object*/)
+{
+//   if (validCDKObject (object)) {
+      eraseCursesWindow(win);
+      eraseCursesWindow(shadowWin);
+//   }
+}
+
+/*
+ * This sets attributes of the dialog box.
+ */
+void SDialog::setCDKDialog(/*CDKDIALOG *dialog, */chtype highlight, bool separator, bool obBox)
+{
+   setCDKDialogHighlight(/*dialog, */highlight);
+   setCDKDialogSeparator(/*dialog, */separator);
+   setCDKDialogBox(/*dialog, */obBox);
+}
+
+/*
+ * This sets the highlight attribute for the buttons.
+ */
+void SDialog::setCDKDialogHighlight(/*CDKDIALOG *dialog, */chtype hi)
+{
+   /*dialog->*/highlight = hi;
+}
+chtype SDialog::getCDKDialogHighlight(/*CDKDIALOG *dialog*/)
+{
+   return /*dialog->*/highlight;
+}
+
+/*
+ * This sets whether or not the dialog box will have a separator line.
+ */
+void SDialog::setCDKDialogSeparator(/*CDKDIALOG *dialog, */bool sep)
+{
+   separator = sep;
+}
+bool SDialog::getCDKDialogSeparator(/*CDKDIALOG *dialog*/)
+{
+   return separator;
+}
+
+/*
+ * This sets the box attribute of the widget.
+ */
+void SDialog::setCDKDialogBox(/*CDKDIALOG *dialog, */bool obBox)
+{
+   /*ObjOf (dialog)->*/obbox = obBox;
+   /*ObjOf (dialog)->*/borderSize = obBox ? 1 : 0;
+}
+bool SDialog::getCDKDialogBox(/*CDKDIALOG *dialog*/)
+{
+   return /*ObjOf (dialog)->*/obbox;
+}
+
+/*
+ * This sets the background attribute of the widget.
+ */
+void SDialog::setBKattrDialog(/*CDKOBJS *object, */chtype attrib)
+{
+	wbkgd(this->win, attrib);
+}
+
+/*
+ * This draws the dialog buttons and the separation line.
+ */
+void SDialog::drawCDKDialogButtons(/*CDKDIALOG *dialog*/)
+{
+	for (size_t x = 0; x < pbutton.size(); x++) {
+		writeChtype(this->win,
+				this->buttonPos[x],
+				this->boxHeight - 1 - borderSize,
+				this->pbutton[x].getinh(),
+				HORIZONTAL, 0,
+				this->buttonLen[x]);
+	}
+
+	/* Draw the separation line. */
+	if (this->separator) {
+		chtype boxattr = BXAttrOf (this);
+
+		for (int x = 1; x < this->boxWidth - 1; x++) {
+			(void)mvwaddch(this->win, this->boxHeight - 2 - borderSize, x, ACS_HLINE | boxattr);
+		}
+		(void)mvwaddch(this->win, this->boxHeight - 2 - borderSize, 0, ACS_LTEE | boxattr);
+		(void)mvwaddch(this->win, this->boxHeight - 2 - borderSize, getmaxx (this->win) - 1, ACS_RTEE | boxattr);
+	}
+	writeChtypeAttrib(this->win,
+			this->buttonPos[this->currentButton],
+			this->boxHeight - 1 - borderSize,
+			this->pbutton[this->currentButton].getinh(),
+			this->highlight,
+			HORIZONTAL, 0,
+			this->buttonLen[this->currentButton]);
+}
+
+void SDialog::focusCDKDialog(/*CDKOBJS *object*/)
+{
+   drawCDKDialog(/*widget, ObjOf (widget)->*/obbox);
+}
+
+void SDialog::unfocusCDKDialog(/*CDKOBJS *object*/)
+{
+   drawCDKDialog(/*this, ObjOf (widget)->*/obbox);
+}
+
+//dummyRefreshData (Dialog)
+//dummySaveData (Dialog)

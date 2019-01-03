@@ -514,12 +514,8 @@ struct SScreen
 	 void exitCancelCDKScreen(/*SScreen *screen*/);
 	 void traverseCDKOnce(/*SScreen *screen,*/ CDKOBJS *curobj, int keyCode, bool functionKey, CHECK_KEYCODE funcMenuKey);
 	 int traverseCDKScreen(/*SScreen *screen*/);
-	 void popupLabel(/*SScreen *screen, */
-			 std::vector<std::string> mesg
-			 );
-	 void popupLabelAttrib(/*SScreen *screen, */
-			 std::vector<std::string> mesg
-			 , chtype attrib);
+	 void popupLabel(/*SScreen *screen, */ std::vector<std::string> mesg);
+	 void popupLabelAttrib(/*SScreen *screen, */ std::vector<std::string> mesg, chtype attrib);
 	 virtual void refreshCDKScreen();
 };
 
@@ -534,7 +530,7 @@ enum EExitType
 		, vNORMAL
 		, vNEVER_ACTIVATED
 		, vERROR
-} ;
+};
 
 int getmaxxf(WINDOW *win);
 int getmaxyf(WINDOW *win);
@@ -629,6 +625,9 @@ void registerCDKObject(SScreen *screen, EObjectType cdktype, void *object);
  */
 struct CDKOBJS
 {
+   WINDOW *	parent;
+   WINDOW *	win;
+   WINDOW *	shadowWin;
    int          screenIndex;
    SScreen *  screen;
 	 EObjectType cdktype; 
@@ -660,6 +659,7 @@ struct CDKOBJS
    /* events */
    EExitType	exitType;
    EExitType	earlyExit;
+	 int objnr=-1; // Objektnr bei Eingabefeld, wird wahrscheinlich nicht gebraucht
    PROCESSFN	preProcessFunction=0;
    void *	preProcessData=0;
    PROCESSFN	postProcessFunction=0;
@@ -734,9 +734,6 @@ struct CDKOBJS
 struct SEntry:CDKOBJS 
 {
 //   CDKOBJS	obj;
-   WINDOW *	parent;
-   WINDOW *	win;
-   WINDOW *	shadowWin;
    WINDOW *	labelWin;
    WINDOW *	fieldWin;
 //   chtype *	label;
@@ -792,7 +789,8 @@ struct SEntry:CDKOBJS
 			 bool   /* Box */,
 			 bool		/* shadow */,
 			 // GSchade 17.11.18
-			 int highnr/*=0*/
+			 int highnr/*=0*/,
+			 int aktent=-1
 			 // Ende GSchade 17.11.18
 			 );
 	 ~SEntry();
@@ -817,10 +815,7 @@ struct SScroll_basis:public CDKOBJS
 {
 	/* This field must stay on top */
 //	CDKOBJS  obj; 
-	WINDOW * parent; 
-	WINDOW * win; 
 	WINDOW * scrollbarWin; 
-	WINDOW * shadowWin; 
 	int      titleAdj;   /* unused */ 
 	std::vector<chtstr> pitem;
 	std::vector<chtstr>::const_iterator piter;
@@ -879,6 +874,7 @@ struct SScroll:SScroll_basis
 	bool	numbers;	/* */
 	chtype	titlehighlight;	/* */
 	WINDOW	*listWin;
+	CDKOBJS *mutter;
 	SScroll(
 			SScreen *	/* cdkscreen */,
 			int		/* xpos */,
@@ -890,6 +886,7 @@ struct SScroll:SScroll_basis
 			 std::vector<std::string> *plistp,
 			bool		/* numbers */,
 			chtype		/* highlight */,
+			CDKOBJS *mutter,
 			bool		/* Box */,
 			bool		/* shadow */);
 	~SScroll();
@@ -954,9 +951,6 @@ struct SFSelect:CDKOBJS
 {
 	 int setCDKFselectdirContents(/*SFSelect *fselect*/);
 	//   CDKOBJS	obj;
-	WINDOW *	parent;
-	WINDOW *	win;
-	WINDOW *	shadowWin;
 	SEntry *	entryField;
 	SScroll *	scrollField;
 	CDKOBJS* bindableObject();
@@ -996,15 +990,16 @@ struct SFSelect:CDKOBJS
 		const char *	/* sockAttribute */,
 		bool		/* Box */,
 		bool		/* shadow */,
-		int highnr
+		int highnr/*=0*/,
+		int aktent=-1
 		);
 	~SFSelect();
 	void moveCDKFselect(/*CDKOBJS *object, */int xplace, int yplace, bool relative, bool refresh_flag);
-	const char *activateCDKFselect(/*SFSelect *fselect, */chtype *actions);
+	const char *activateCDKFselect(/*SFSelect *fselect, */chtype *actions,int *Zweitzeichen/*=0*/,int *Drittzeichen/*=0*/,int obpfeil/*=0*/);
 	void destroyObj(){this->~SFSelect();}
 	void eraseCDKFselect();
 	void eraseObj(){eraseCDKFselect();}
-	 void drawCDKFselect(bool Box);
+	 void drawCDKFselect(bool Box, bool obmitscroller=0);
 	 void drawMyScroller(/*SFSelect *widget*/);
 	 void drawObj(bool Box);
 	 void setPWD(/*SFSelect *fselect*/);
@@ -1022,9 +1017,6 @@ struct SFSelect:CDKOBJS
 
 struct SAlphalist:CDKOBJS
 {
-   WINDOW*	parent;
-   WINDOW*	win;
-   WINDOW*	shadowWin;
    SEntry*	entryField;
    SScroll*	scrollField;
 	 std::vector<std::string> plist;
@@ -1051,13 +1043,14 @@ struct SAlphalist:CDKOBJS
 			 bool Box,
 			 bool shadow,
 			 // GSchade Anfang
-			 int highnr/*=0*/
+			 int highnr/*=0*/,
+			 int aktent=-1
 			 // GSchade Ende
 			 );
 	 ~SAlphalist();
 	 void destroyObj(){this->~SAlphalist();}
 	 void drawMyScroller(/*SAlphalist *widget*/);
-	 void drawCDKAlphalist(bool Box GCC_UNUSED);
+	 void drawCDKAlphalist(bool Box GCC_UNUSED, bool obmitscroller=0);
 	 void drawObj(bool Box);
 	 void moveCDKAlphalist(int xplace, int yplace, bool relative, bool refresh_flag);
 	 void injectMyScroller(chtype key);
@@ -1127,38 +1120,87 @@ struct SAlphalist:CDKOBJS
  * Declare the CDK label structure.
  */
 struct SLabel:CDKOBJS {
-//   CDKOBJS	obj;
-   WINDOW *	parent;
-   WINDOW *	win;
-   WINDOW *	shadowWin;
+	//   CDKOBJS	obj;
 	std::vector<chtstr> pinfo;
 	std::vector<chtstr>::const_iterator pitinfo;
 	std::vector<int> infoLen;
 	std::vector<int> infoPos;
-   int		boxWidth;
-   int		boxHeight;
-   int		xpos;
-   int		ypos;
-   int		rows;
-   bool	shadow;
-	 SLabel(SScreen *cdkscreen, int xplace, int yplace, 
-			 std::vector<std::string> mesg
-			 , bool Box, bool shadow);
-	 void setCDKLabelBox(/*SLabel *label, */bool Box);
-	 bool getCDKLabelBox(/*SLabel *label*/);
-	 void activateCDKLabel(/*SLabel *label, */chtype *actions GCC_UNUSED);
-	 void setCDKLabel(/*SLabel *label, */
-			 std::vector<std::string> mesg
-			 , bool Box);
-	 void setCDKLabelMessage(/*SLabel *label, */
-			 std::vector<std::string> s_info
-			 );
-	 void setBKattrLabel(chtype attrib);
-	 void setBKattrObj(chtype attrib);
-	 void drawCDKLabel(/*CDKOBJS *object, */bool Box GCC_UNUSED);
-	 void eraseCDKLabel(/*CDKOBJS *object*/);
-	 void moveCDKLabel(/*CDKOBJS *object,*/ int xplace, int yplace, bool relative, bool refresh_flag);
-	 void destroyCDKLabel(/*CDKOBJS *object*/);
-	 char waitCDKLabel(/*SLabel *label, */char key);
+	int		boxWidth;
+	int		boxHeight;
+	int		xpos;
+	int		ypos;
+	int		rows;
+	bool	shadow;
+	SLabel(SScreen *cdkscreen, int xplace, int yplace, std::vector<std::string> mesg , bool Box, bool shadow);
+	void setCDKLabelBox(/*SLabel *label, */bool Box);
+	bool getCDKLabelBox(/*SLabel *label*/);
+	void activateCDKLabel(/*SLabel *label, */chtype *actions GCC_UNUSED);
+	void setCDKLabel(/*SLabel *label, */ std::vector<std::string> mesg , bool Box);
+	void setCDKLabelMessage(/*SLabel *label, */ std::vector<std::string> s_info);
+	void setBKattrLabel(chtype attrib);
+	void setBKattrObj(chtype attrib);
+	void drawCDKLabel(/*CDKOBJS *object, */bool Box GCC_UNUSED);
+	void eraseCDKLabel(/*CDKOBJS *object*/);
+	void moveCDKLabel(/*CDKOBJS *object,*/ int xplace, int yplace, bool relative, bool refresh_flag);
+	void destroyCDKLabel(/*CDKOBJS *object*/);
+	char waitCDKLabel(/*SLabel *label, */char key);
 };
-//typedef struct SLabel SLabel;
+
+/*
+ * Declare definitions the dialog box may need.
+ */
+#define MAX_DIALOG_ROWS		50	/* unused by widgets */
+#define MAX_DIALOG_BUTTONS	25	/* unused by widgets */
+#define MIN_DIALOG_WIDTH	10
+
+/*
+ * Define the CDK dialog structure.
+ */
+struct SDialog:CDKOBJS {
+	//   CDKOBJS	obj;
+	std::vector<chtstr> pinfo;
+	std::vector<chtstr>::const_iterator pitinfo;
+	std::vector<int> infoLen;
+	std::vector<int> infoPos;
+	std::vector<chtstr> pbutton;
+	std::vector<int> buttonLen;
+	std::vector<int> buttonPos;
+	int		currentButton;
+	int		boxWidth;
+	int		boxHeight;
+	bool	separator;
+	bool	shadow;
+	chtype	highlight;
+	/*
+	 * This returns a CDK dialog widget pointer.
+	 */
+	SDialog(SScreen* cdkscreen,int xPos,int yPos,
+			std::vector<std::string> *mesg,
+			std::vector<std::string> *buttonLabel,
+			chtype	highlight ,
+			bool		separator,
+			bool		obBox,
+			bool		shadow);
+//	~SDialog();
+	int activateCDKDialog(/*CDKDIALOG *dialog, */chtype *actions);
+	int injectCDKDialog(/*CDKOBJS *object, */chtype input);
+	void moveCDKDialog(/*CDKOBJS *object,*/
+			int xplace,
+			int yplace,
+			bool relative,
+			bool refresh_flag);
+	void drawCDKDialog(/*CDKOBJS *object, */bool Box);
+	void destroyCDKDialog(/*CDKOBJS *object*/);
+	void eraseCDKDialog(/*CDKOBJS *object*/);
+	void setCDKDialog(/*CDKDIALOG *dialog, */chtype highlight, bool separator, bool Box);
+	void setCDKDialogHighlight(/*CDKDIALOG *dialog, */chtype hi);
+	chtype getCDKDialogHighlight(/*CDKDIALOG *dialog*/);
+	void setCDKDialogSeparator(/*CDKDIALOG *dialog, */bool sep);
+	bool getCDKDialogSeparator(/*CDKDIALOG *dialog*/);
+	void setCDKDialogBox(/*CDKDIALOG *dialog, */bool Box);
+	bool getCDKDialogBox (/*CDKDIALOG *dialog*/);
+	void setBKattrDialog(/*CDKOBJS *object, */chtype attrib);
+	void drawCDKDialogButtons(/*CDKDIALOG *dialog*/);
+	void focusCDKDialog(/*CDKOBJS *object*/);
+	void unfocusCDKDialog(/*CDKOBJS *object*/);
+};
