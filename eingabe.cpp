@@ -38,7 +38,7 @@ struct UNDO
 //static UNDO *myUndoList;
 static int undoSize;
 
-static int rfende(EObjectType cdktype GCC_UNUSED,
+__attribute__((__unused__)) static int rfende(EObjectType cdktype GCC_UNUSED,
 		void *object,
 		void *clientData GCC_UNUSED,
 		chtype key GCC_UNUSED)
@@ -143,7 +143,6 @@ struct hotkst {
 	{"</R/U/6>Döüßatei:<!R!6>",4,auswfld},
 	{"</R/U/6>Ordner:<!R!6>",4,auswfld},
 	{"</R/U/6>Alphälißt:<!R!6>",4},
-	{"</R/U/6>Betalist:<!R!6>",2,dteifld},
 	{"</R/U/6>Betalist:<!R!6>",3},
 	{"</R/U/6>Dürectory:<!R!6>",3},
 	{"</R/U/4>Dürectory:<!R!4>",3},
@@ -157,6 +156,7 @@ struct hotkst {
 	{"</R/U/6>Betalist:<!R!6>",3},
 	{"</R/U/6>Dürectory:<!R!6>",3},
 	{"</R/U/4>Dürectory:<!R!4>",3},
+	{"</R/U/6>Betalist:<!R!6>",2,dteifld},
 	// */
 };
 const int maxhk=sizeof hk/sizeof *hk;
@@ -230,7 +230,7 @@ int main(int argc, char **argv)
 			case eingfld:
 				hk[aktent].eingabef=
 					//newCDKEntry(cdkscreen,xpos,yabst+aktent,"",hk[aktent].label,A_NORMAL,'.',vMIXED,30,0,maxlen,0,0,hk[aktent].highinr);
-					new SEntry(cdkscreen,xpos,yabst+aktent,"",hk[aktent].label,A_NORMAL,'.',vMIXED,30,0,maxlen,0,0,hk[aktent].highinr,aktent);
+					new SEntry(cdkscreen,xpos,yabst+aktent,"",hk[aktent].label,A_NORMAL,'.',vMIXED,30,0,maxlen,0,0,/*pmutter*/0,hk[aktent].highinr,aktent);
 				break;
 			case dteifld:
 				hk[aktent].eingabef=

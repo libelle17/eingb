@@ -74,6 +74,8 @@ enum einbauart {
 	einb_sonst
 };
 extern einbauart akteinbart;
+struct CDKOBJS; // CDKOBJS
+extern std::vector<CDKOBJS*> all_objects;
 
 #include <string.h> // strlen
 #include <stdlib.h> // malloc
@@ -123,8 +125,8 @@ extern einbauart akteinbart;
 #define TYPE_CHTYPE_IS_SCALAR 1
 #define setbegyx(win,y,x)((win)->_begy =(y),(win)->_begx =(x), OK)
 
-#define freeChecked(p)          if ((p) != 0) free(p)
-#define freeAndNull(p)          if ((p) != 0) { free(p); p = 0; }
+// #define freeChecked(p)          if ((p) != 0) free(p)
+// #define freeAndNull(p)          if ((p) != 0) { free(p); p = 0; }
 /*
  * Declare miscellaneous defines.
  */
@@ -231,16 +233,16 @@ extern einbauart akteinbart;
 //#define MethodOf(ptr)           (ObjOf(ptr)->fn)
 #define ScreenOf(ptr)           (ObjOf(ptr)->screen)
 #define WindowOf(ptr)           (ScreenOf(ptr)->window)
-#define BorderOf(p)             (ObjOf(p)->borderSize)
-#define ResultOf(p)             (ObjOf(p)->resultData)
+//#define BorderOf(p)             (ObjOf(p)->borderSize)
+//#define ResultOf(p)             (ObjOf(p)->resultData)
 #define ExitTypeOf(p)           (ObjOf(p)->exitType)
 #define EarlyExitOf(p)          (ObjOf(p)->earlyExit)
 
 /* titles */
-#define TitleOf(w)              ObjOf(w)->title
-#define TitlePosOf(w)           ObjOf(w)->titlePos
-#define TitleLenOf(w)           ObjOf(w)->titleLen
-#define TitleLinesOf(w)         ObjOf(w)->titleLines
+// #define TitleOf(w)              ObjOf(w)->title
+// #define TitlePosOf(w)           ObjOf(w)->titlePos
+// #define TitleLenOf(w)           ObjOf(w)->titleLen
+// #define TitleLinesOf(w)         ObjOf(w)->titleLines
 
 /* line-drawing characters */
 #define ULCharOf(w)             ObjOf(w)->ULChar
@@ -268,8 +270,10 @@ extern einbauart akteinbart;
 /*
  * Position within the data area of a widget, accounting for border and title.
  */
-#define SCREEN_XPOS(w,n)((n) + BorderOf(w))
-#define SCREEN_YPOS(w,n)((n) + BorderOf(w) + TitleLinesOf(w))
+//#define SCREEN_XPOS(w,n)((n) + BorderOf(w))
+#define SCREEN_XPOS(w,n)((n) + borderSize)
+//#define SCREEN_YPOS(w,n)((n) + BorderOf(w) + TitleLinesOf(w))
+#define SCREEN_YPOS(w,n)((n) + borderSize + titleLines)
 
 /* The cast is needed because traverse.c wants to use CDKOBJS pointers */
 #define ObjPtr(p)          ((CDKOBJS*)(p))
@@ -293,22 +297,22 @@ extern einbauart akteinbart;
 #define SetBackAttrObj(p,c)     MethodPtr(p,setBKattrObj)    (p,c)
 */
 
-#define AcceptsFocusObj(p)      (ObjPtr(p)->acceptsFocus)
-#define HasFocusObj(p)          (ObjPtr(p)->hasFocus)
-#define IsVisibleObj(p)         (ObjPtr(p)->isVisible)
-#define InputWindowOf(p)        (ObjPtr(p)->inputWindow)
+// #define AcceptsFocusObj(p)      (ObjPtr(p)->acceptsFocus)
+// #define HasFocusObj(p)          (ObjPtr(p)->hasFocus)
+// #define IsVisibleObj(p)         (ObjPtr(p)->isVisible)
+// #define InputWindowOf(p)        (ObjPtr(p)->inputWindow)
 
 
-#define typeCallocN(type,n)     (type*)calloc((size_t)(n), sizeof(type))
-#define typeCalloc(type)        typeCallocN(type,1)
+// #define typeCallocN(type,n)     (type*)calloc((size_t)(n), sizeof(type))
+// #define typeCalloc(type)        typeCallocN(type,1)
 
-#define typeReallocN(type,p,n)  (type*)realloc(p,(size_t)(n) * sizeof(type))
+// #define typeReallocN(type,p,n)  (type*)realloc(p,(size_t)(n) * sizeof(type))
 
-#define typeMallocN(type,n)     (type*)malloc((size_t)(n) * sizeof(type))
-#define typeMalloc(type)        typeMallocN(type,1)
+// #define typeMallocN(type,n)     (type*)malloc((size_t)(n) * sizeof(type))
+// #define typeMalloc(type)        typeMallocN(type,1)
 
-#define freeChecked(p)          if ((p) != 0) free(p)
-#define freeAndNull(p)          if ((p) != 0) { free(p); p = 0; }
+// #define freeChecked(p)          if ((p) != 0) free(p)
+// #define freeAndNull(p)          if ((p) != 0) { free(p); p = 0; }
 
 #define isChar(c)               ((int)(c) >= 0 && (int)(c) < KEY_MIN)
 // #define CharOf(c)               ((unsigned char)(c))
@@ -320,7 +324,7 @@ extern einbauart akteinbart;
 #define L_MARKER '<'
 #define R_MARKER '>'
 #define DigitOf(c) ((c)-'0')
-#define ReturnOf(p)   (ObjPtr(p)->dataPtr)
+// #define ReturnOf(p)   (ObjPtr(p)->dataPtr)
 
 /*
  * Hide details of modifying widget->exitType
@@ -364,7 +368,6 @@ extern einbauart akteinbart;
 #define SCREENPOS(w,n) (w)->itemPos[n] - (w)->leftChar	/* + scrollbarAdj + BorderOf(w) */
 
 
-struct CDKOBJS; // CDKOBJS
 
 enum EExitStatus 
 {
@@ -625,20 +628,21 @@ void registerCDKObject(SScreen *screen, EObjectType cdktype, void *object);
  */
 struct CDKOBJS
 {
+   SScreen *  screen;
    WINDOW *	parent;
    WINDOW *	win;
+   bool      obbox;
+   int       borderSize;
+   bool	shadow;
    WINDOW *	shadowWin;
-   int          screenIndex;
-   SScreen *  screen;
+   int          screenIndex=-1;
 	 EObjectType cdktype; 
 	 //const CDKFUNCS * fn;
-   bool      obbox;
-   int          borderSize;
-   bool      acceptsFocus;
+   bool      acceptsFocus=TRUE; // im Original nur im Menu-Widget falsch
    bool      hasFocus;
    bool      isVisible;
    WINDOW *     inputWindow;
-   void *       dataPtr;
+//   void *       dataPtr=0; // wird im Original nur unter #if 0 in entry.c und itemlist verwendet
    CDKDataUnion resultData;
 	 std::map<chtype,CDKBINDING> bindv;
 	 std::map<chtype,CDKBINDING>::const_iterator bindvit;
@@ -659,7 +663,19 @@ struct CDKOBJS
    /* events */
    EExitType	exitType;
    EExitType	earlyExit;
+	 CDKOBJS *mutter=0;
 	 int objnr=-1; // Objektnr bei Eingabefeld, wird wahrscheinlich nicht gebraucht
+	 CDKOBJS(
+			 SScreen* pscreen
+			 ,WINDOW* pparent
+			 ,bool obBox
+			 ,bool pshadow
+			 ,EObjectType pcdktype
+			 ,bool pacceptsFocus
+			 ,bool phasFocus
+			 ,bool pisVisible
+			 ,int objnr=-1
+			 );
    PROCESSFN	preProcessFunction=0;
    void *	preProcessData=0;
    PROCESSFN	postProcessFunction=0;
@@ -688,7 +704,7 @@ struct CDKOBJS
 	 virtual void setHZcharObj(chtype);
 	 virtual void setBXattrObj(chtype);
 	 */
-	 void setBox(bool Box);
+//	 void setBox(bool Box);
    // background attribute
 	 virtual void setBKattrObj(chtype);
 	 void refreshDataCDK();
@@ -704,7 +720,7 @@ struct CDKOBJS
 	 void setExitType(chtype ch);
 	 void setCDKObjectPreProcess(/*CDKOBJS *obj, */PROCESSFN fn, void *data);
 	 void setCDKObjectPostProcess(/*CDKOBJS *obj, */PROCESSFN fn, void *data);
-	 CDKOBJS();
+//	 CDKOBJS();
 	 ~CDKOBJS();
 	 void unregisterCDKObject(EObjectType cdktype/*, void *object*/);
 	 void destroyCDKObject(/*CDKOBJS *obj*/);
@@ -721,11 +737,16 @@ struct CDKOBJS
 	 void raiseCDKObject(EObjectType cdktype/*, void *object*/);
 	 void lowerCDKObject(EObjectType cdktype/*, void *object*/);
 	 void unsetFocus();
-	 void exitOKCDKScreenOf(/*CDKOBJS *obj*/);
-	 void exitCancelCDKScreenOf(/*CDKOBJS *obj*/);
-	 void resetCDKScreenOf(/*CDKOBJS *obj*/);
+//	 void exitOKCDKScreenOf(/*CDKOBJS *obj*/);
+//	 void exitCancelCDKScreenOf(/*CDKOBJS *obj*/);
+//	 void resetCDKScreenOf(/*CDKOBJS *obj*/);
 	 void setCDKObjectBackgroundColor(/*CDKOBJS *obj, */const char *color);
 }; // struct CDKOBJS
+
+struct ComboB:CDKOBJS
+{
+	 bool zeichnescroll=1;
+};
 
 /*
  * Define the CDK entry widget structure.
@@ -757,7 +778,7 @@ struct SEntry:CDKOBJS
    void schreibl(chtype); // GSchade, callbackfn
    void zeichneFeld(); // GSchade
 	 void setCDKEntry(const char *value, int min, int max, bool Box GCC_UNUSED);
-	 const char* getCDKEntryValue();
+//	 const char* getCDKEntryValue();
 	 void setBKattrEntry(chtype attrib);
 	 void setBKattrObj(chtype);
 	 void setCDKEntryHighlight(chtype highlight, bool cursor);
@@ -766,7 +787,6 @@ struct SEntry:CDKOBJS
 	 void unfocusCDKEntry();
 	 void unfocusObj(){unfocusCDKEntry();}
    EDisplayType dispType;
-   bool	shadow;
    chtype	filler;
    chtype	hidden;
 	 std::string GPasteBuffer;
@@ -789,6 +809,7 @@ struct SEntry:CDKOBJS
 			 bool   /* Box */,
 			 bool		/* shadow */,
 			 // GSchade 17.11.18
+			 CDKOBJS *pmutter,
 			 int highnr/*=0*/,
 			 int aktent=-1
 			 // Ende GSchade 17.11.18
@@ -842,7 +863,6 @@ struct SScroll_basis:public CDKOBJS
 	int      togglePos; /* position of scrollbar thumb/toggle */ 
 	float    step; /* increment for scrollbar */ 
 
-	bool  shadow; 
 	chtype   highlight;
 	void updateViewWidth(int widest);
 	int MaxViewSize();
@@ -857,6 +877,17 @@ struct SScroll_basis:public CDKOBJS
 	void scroll_KEY_PPAGE();
 	void scroll_KEY_NPAGE();
 	void setViewSize(int listSize);
+	SScroll_basis(
+			 SScreen* pscreen
+			 ,WINDOW* pparent
+			 ,bool obBox
+			 ,bool pshadow
+			 ,EObjectType pcdktype
+			 ,bool pacceptsFocus
+			 ,bool phasFocus
+			 ,bool pisVisible
+			 ,int objnr=-1
+			 );
 };
 
 /*
@@ -874,7 +905,6 @@ struct SScroll:SScroll_basis
 	bool	numbers;	/* */
 	chtype	titlehighlight;	/* */
 	WINDOW	*listWin;
-	CDKOBJS *mutter;
 	SScroll(
 			SScreen *	/* cdkscreen */,
 			int		/* xpos */,
@@ -949,7 +979,7 @@ static int preProcessEntryField(EObjectType cdktype GCC_UNUSED, void
  */
 struct SFSelect:CDKOBJS
 {
-	 int setCDKFselectdirContents(/*SFSelect *fselect*/);
+	int setCDKFselectdirContents(/*SFSelect *fselect*/);
 	//   CDKOBJS	obj;
 	SEntry *	entryField;
 	SScroll *	scrollField;
@@ -968,7 +998,6 @@ struct SFSelect:CDKOBJS
 	std::string fileAttribute;
 	std::string linkAttribute;
 	std::string sockAttribute;
-	bool	shadow;
 /*
  * This creates a new CDK file selector widget.
  */
@@ -1024,11 +1053,11 @@ struct SAlphalist:CDKOBJS
    int		ypos;
    int		height;
    int		width;
-   int		boxHeight;
    int		boxWidth;
+   int		boxHeight;
+	 bool zeichnescroll=1;
    chtype	highlight;
    chtype	fillerChar;
-   bool	shadow;
 	 CDKOBJS* bindableObject();
 	 SAlphalist(SScreen *cdkscreen,
 			 int xplace,
@@ -1060,18 +1089,18 @@ struct SAlphalist:CDKOBJS
 	 void eraseCDKAlphalist();
 	 void eraseObj(){eraseCDKAlphalist();}
 	 void destroyInfo();
-	 void setCDKAlphalist(std::vector<std::string> *plistp, chtype fillerChar, chtype highlight, bool Box);
+//	 void setCDKAlphalist(std::vector<std::string> *plistp, chtype fillerChar, chtype highlight, bool Box);
 	 void setCDKAlphalistContents(std::vector<std::string> *plistp);
-	 std::vector<std::string> *getCDKAlphalistContents();
-	 int getCDKAlphalistCurrentItem();
+//	 std::vector<std::string> *getCDKAlphalistContents();
+//	 int getCDKAlphalistCurrentItem();
 	 void setCDKAlphalistCurrentItem(int item);
-	 void setCDKAlphalistFillerChar(chtype fillerCharacter);
-	 chtype getCDKAlphalistFillerChar();
-	 void setCDKAlphalistHighlight(chtype hl);
-	 chtype getCDKAlphalistHighlight();
+//	 void setCDKAlphalistFillerChar(chtype fillerCharacter);
+//	 chtype getCDKAlphalistFillerChar();
+//	 void setCDKAlphalistHighlight(chtype hl);
+//	 chtype getCDKAlphalistHighlight();
 	 void setBKattrObj(chtype attrib);
 	 //	 void setCDKAlphalistBox(bool Box);
-	 bool getCDKAlphalistBox();
+//	 bool getCDKAlphalistBox();
 	 void setMyULchar(chtype character);
 	 void setMyURchar(chtype character);
 	 void setMyLLchar(chtype character);
@@ -1080,8 +1109,8 @@ struct SAlphalist:CDKOBJS
 	 void setMyHZchar(chtype character);
 	 void setMyBXattr(chtype character);
 	 void setMyBKattr(chtype character);
-	 void setCDKAlphalistPreProcess(PROCESSFN callback, void *data);
-	 void setCDKAlphalistPostProcess(PROCESSFN callback, void *data);
+//	 void setCDKAlphalistPreProcess(PROCESSFN callback, void *data);
+//	 void setCDKAlphalistPostProcess(PROCESSFN callback, void *data);
 	 void focusCDKAlphalist();
 	 void focusObj(){focusCDKAlphalist();}
 	 void unfocusCDKAlphalist();
@@ -1125,17 +1154,15 @@ struct SLabel:CDKOBJS {
 	std::vector<chtstr>::const_iterator pitinfo;
 	std::vector<int> infoLen;
 	std::vector<int> infoPos;
-	int		boxWidth;
-	int		boxHeight;
 	int		xpos;
 	int		ypos;
 	int		rows;
-	bool	shadow;
+	int		boxWidth;
+	int		boxHeight;
 	SLabel(SScreen *cdkscreen, int xplace, int yplace, std::vector<std::string> mesg , bool Box, bool shadow);
-	void setCDKLabelBox(/*SLabel *label, */bool Box);
-	bool getCDKLabelBox(/*SLabel *label*/);
+//	bool getCDKLabelBox(/*SLabel *label*/);
 	void activateCDKLabel(/*SLabel *label, */chtype *actions GCC_UNUSED);
-	void setCDKLabel(/*SLabel *label, */ std::vector<std::string> mesg , bool Box);
+//	void setCDKLabel(/*SLabel *label, */ std::vector<std::string> mesg , bool Box);
 	void setCDKLabelMessage(/*SLabel *label, */ std::vector<std::string> s_info);
 	void setBKattrLabel(chtype attrib);
 	void setBKattrObj(chtype attrib);
@@ -1169,7 +1196,6 @@ struct SDialog:CDKOBJS {
 	int		boxWidth;
 	int		boxHeight;
 	bool	separator;
-	bool	shadow;
 	chtype	highlight;
 	/*
 	 * This returns a CDK dialog widget pointer.
@@ -1192,13 +1218,12 @@ struct SDialog:CDKOBJS {
 	void drawCDKDialog(/*CDKOBJS *object, */bool Box);
 	void destroyCDKDialog(/*CDKOBJS *object*/);
 	void eraseCDKDialog(/*CDKOBJS *object*/);
-	void setCDKDialog(/*CDKDIALOG *dialog, */chtype highlight, bool separator, bool Box);
+//	void setCDKDialog(/*CDKDIALOG *dialog, */chtype highlight, bool separator, bool Box);
 	void setCDKDialogHighlight(/*CDKDIALOG *dialog, */chtype hi);
-	chtype getCDKDialogHighlight(/*CDKDIALOG *dialog*/);
+//	chtype getCDKDialogHighlight(/*CDKDIALOG *dialog*/);
 	void setCDKDialogSeparator(/*CDKDIALOG *dialog, */bool sep);
-	bool getCDKDialogSeparator(/*CDKDIALOG *dialog*/);
-	void setCDKDialogBox(/*CDKDIALOG *dialog, */bool Box);
-	bool getCDKDialogBox (/*CDKDIALOG *dialog*/);
+//	bool getCDKDialogSeparator(/*CDKDIALOG *dialog*/);
+//	bool getCDKDialogBox (/*CDKDIALOG *dialog*/);
 	void setBKattrDialog(/*CDKOBJS *object, */chtype attrib);
 	void drawCDKDialogButtons(/*CDKDIALOG *dialog*/);
 	void focusCDKDialog(/*CDKOBJS *object*/);

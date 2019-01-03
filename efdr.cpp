@@ -513,7 +513,6 @@ void alignxy(WINDOW *window, int *xpos, int *ypos, int boxWidth, int boxHeight)
 	if ((gap = (last - boxWidth)) < 0)
 		gap = 0;
 	last = first + gap;
-
 	switch (*xpos) {
 		case LEFT:
 			(*xpos) = first;
@@ -531,7 +530,6 @@ void alignxy(WINDOW *window, int *xpos, int *ypos, int boxWidth, int boxHeight)
 				(*xpos) = first;
 			break;
 	}
-
 	first = getbegy(window);
 	last = getmaxy(window);
 	if ((gap =(last - boxHeight)) < 0)
@@ -1085,7 +1083,7 @@ CDKOBJS *SScreen::setCDKFocusNext()
 		if (++n >= this->objectCount)
 			n = 0;
 		curobj = this->object[n];
-		if (curobj && AcceptsFocusObj(curobj)) {
+		if (curobj && curobj->acceptsFocus) {
 			result = curobj;
 			break;
 		} else {
@@ -1111,7 +1109,7 @@ CDKOBJS* SScreen::setCDKFocusPrevious()
 		if (--n < 0)
 			n = this->objectCount - 1;
 		curobj = this->object[n];
-		if (curobj && AcceptsFocusObj(curobj)) {
+		if (curobj && curobj->acceptsFocus) {
 			result = curobj;
 			break;
 		} else if (n == first) {
@@ -1183,10 +1181,6 @@ void SScreen::refreshDataCDKScreen(/*SScreen *screen*/)
       object[i]->/*refreshDataObj*/refreshDataCDK(/*screen->*//*object[i]*/);
 }
 
-void SScreen::resetCDKScreen(/*SScreen *screen*/)
-{
-   refreshDataCDKScreen(/*screen*/);
-}
 
 void SScreen::exitOKCDKScreen(/*SScreen *screen*/)
 {
@@ -1198,20 +1192,30 @@ void SScreen::exitCancelCDKScreen(/*SScreen *screen*/)
    /*screen->*/exitStatus = CDKSCREEN_EXITCANCEL;
 }
 
-void CDKOBJS::exitOKCDKScreenOf(/*CDKOBJS *obj*/)
+/*
+void CDKOBJS::exitOKCDKScreenOf()
 {
-   screen->exitOKCDKScreen(/*obj->screen*/);
+   screen->exitOKCDKScreen();
 }
+*/
 
-void CDKOBJS::exitCancelCDKScreenOf(/*CDKOBJS *obj*/)
+/*
+void CDKOBJS::exitCancelCDKScreenOf()
 {
-   screen->exitCancelCDKScreen(/*obj->screen*/);
+   screen->exitCancelCDKScreen();
 }
+*/
 
-void CDKOBJS::resetCDKScreenOf(/*CDKOBJS *obj*/)
+void SScreen::resetCDKScreen()
 {
-   screen->resetCDKScreen(/*obj->screen*/);
+   refreshDataCDKScreen();
 }
+/*
+void CDKOBJS::resetCDKScreenOf()
+{
+   screen->resetCDKScreen();
+}
+*/
 
 void SScreen::traverseCDKOnce(/*SScreen *screen,*/
 		CDKOBJS *curobj,
@@ -1449,6 +1453,7 @@ void CDKOBJS::setScreenIndex(SScreen *pscreen)
  * Create a new object beginning with a CDKOBJS struct.  The whole object is
  * initialized to zeroes except for special cases which have known values.
  */
+/*
 CDKOBJS::CDKOBJS() // void *_newCDKObject(unsigned size, const CDKFUNCS * funcs)
 {
 	 hasFocus = TRUE;
@@ -1456,7 +1461,7 @@ CDKOBJS::CDKOBJS() // void *_newCDKObject(unsigned size, const CDKFUNCS * funcs)
 
 	 all_objects.push_back(this);
 
-	 /* set default line-drawing characters */
+	 // set default line-drawing characters
 	 ULChar = ACS_ULCORNER;
 	 URChar = ACS_URCORNER;
 	 LLChar = ACS_LLCORNER;
@@ -1465,10 +1470,11 @@ CDKOBJS::CDKOBJS() // void *_newCDKObject(unsigned size, const CDKFUNCS * funcs)
 	 VTChar = ACS_VLINE;
 	 BXAttr = A_NORMAL;
 
-	 /* set default exit-types */
+	 // set default exit-types 
 	 exitType = vNEVER_ACTIVATED;
 	 earlyExit = vNEVER_ACTIVATED;
 }
+*/
 
 CDKOBJS::~CDKOBJS()
 {
@@ -1704,8 +1710,8 @@ void SAlphalist::moveCDKAlphalist(
    /* *INDENT-EQLS* */
    int currentX = getbegx(this->win);
    int currentY = getbegy(this->win);
-   int xpos     = xplace;
-   int ypos     = yplace;
+   /*int */xpos     = xplace;
+   /*int */ypos     = yplace;
    int xdiff    = 0;
    int ydiff    = 0;
    /*
@@ -1748,8 +1754,8 @@ void SFSelect::moveCDKFselect(/*CDKOBJS *object,*/
 	/* *INDENT-EQLS* */
 	int currentX = getbegx(this->win);
 	int currentY = getbegy(this->win);
-	int xpos     = xplace;
-	int ypos     = yplace;
+	/*int */xpos     = xplace;
+	/*int */ypos     = yplace;
 	int xdiff    = 0;
 	int ydiff    = 0;
 	/*
@@ -1845,8 +1851,6 @@ void SScroll::moveCDKScroll(
    int currentY       = getbegy(this->win);
    int xpos           = xplace;
    int ypos           = yplace;
-   int xdiff          = 0;
-   int ydiff          = 0;
    /*
     * If this is a relative move, then we will adjust where we want
     * to move to.
@@ -1858,8 +1862,8 @@ void SScroll::moveCDKScroll(
    /* Adjust the window if we need to. */
    alignxy(WindowOf(this), &xpos, &ypos, this->boxWidth, this->boxHeight);
    /* Get the difference. */
-   xdiff = currentX - xpos;
-   ydiff = currentY - ypos;
+   int xdiff = currentX - xpos;
+   int ydiff = currentY - ypos;
    /* Move the window to the new location. */
    moveCursesWindow(this->win, -xdiff, -ydiff);
    moveCursesWindow(this->listWin, -xdiff, -ydiff);
@@ -1929,45 +1933,47 @@ SFSelect::~SFSelect()
 /*
  * This function sets the pre-process function.
  */
-void SAlphalist::setCDKAlphalistPreProcess(
-				PROCESSFN callback,
-				void *data)
+/*
+void SAlphalist::setCDKAlphalistPreProcess(PROCESSFN callback, void *data)
 {
    entryField->setCDKObjectPreProcess(callback, data);
 }
+*/
 
 /*
  * This function sets the post-process function.
  */
-void SAlphalist::setCDKAlphalistPostProcess(
-				 PROCESSFN callback,
-				 void *data)
+/*
+void SAlphalist::setCDKAlphalistPostProcess(PROCESSFN callback, void *data)
 {
    entryField->setCDKObjectPostProcess(callback, data);
 }
+*/
 
 /*
  * This function draws the scrolling list widget.
  */
 void SScroll::drawCDKScroll(bool Box,bool obmit)
 {
-//   SScroll *scrollp =(SScroll *)object;
-   /* Draw in the shadow if we need to. */
-   if (this->shadowWin)
-      drawShadow(this->shadowWin);
-   drawCdkTitle(this->win);
-   /* Draw in the scolling list items. */
-	 // Kommentar GSchade 0 11.11.18
-	 // GSchade: auskommentieren und dann noch vor dem Wechsel zu anderem alle übrigen zeichnen
-	 // if (akteinbart==einb_alphalist &&obmit) KLA
-//	 if (obmit && Znr==mutter->objnr && !erstmals) KLA
-		 drawCDKScrollList(Box); 
-		 wrefresh(parent); // gleichbedeutend: wrefresh(obj.screen->window);
-		 /*
+	//   SScroll *scrollp =(SScroll *)object;
+	/* Draw in the shadow if we need to. */
+	if (this->shadowWin)
+		drawShadow(this->shadowWin);
+	drawCdkTitle(this->win);
+	/* Draw in the scolling list items. */
+	// Kommentar GSchade 0 11.11.18
+	// GSchade: auskommentieren und dann noch vor dem Wechsel zu anderem alle übrigen zeichnen
+	// if (akteinbart==einb_alphalist &&obmit) KLA
+	//	 if (obmit && Znr==mutter->objnr && !erstmals) KLA
+//	if (mutter->zeichnescroll) {
+		drawCDKScrollList(Box); 
+		wrefresh(parent); // gleichbedeutend: wrefresh(obj.screen->window);
+//	}
+	/*
 		 static int nr=0;
 		 ofstream prot;
 		 prot.open("protok.txt",ios::out|ios::app);
-     prot<<nr++<<": Znr: "<<Znr<<", mutter->objnr: "<<mutter->objnr<<", erstmals: "<<erstmals<<", obmit: "<<obmit<<endl;
+		 prot<<nr++<<": Znr: "<<Znr<<", mutter->objnr: "<<mutter->objnr<<", erstmals: "<<erstmals<<", obmit: "<<obmit<<endl;
 		 prot.close();
 		 */
 	 // KLZ
@@ -2033,9 +2039,7 @@ int CDKOBJS::setCdkTitle(const char *titlec, int boxWidth)
 			/* We need to determine the widest title line. */
 			for (x = 0; x < titleLines; x++) {
 //				chtype *holder = char2Chtypeh(temp[x], &len, &align);
-				chtstr holder(temp[x]
-	 					.c_str()
-						,&len,&align);
+				chtstr holder(temp[x].c_str(),&len,&align);
 				maxWidth = MAXIMUM(maxWidth, len);
 //				freeChtype(holder);
 			}
@@ -2048,9 +2052,7 @@ int CDKOBJS::setCdkTitle(const char *titlec, int boxWidth)
 		titleWidth = boxWidth - (2 * borderSize);
 		for (x = 0; x < titleLines; x++) {
 //			title[x] = char2Chtypeh(temp[x], &titleLen[x], &titlePos[x]);
-			titles.push_back(chtstr(temp[x]
-	 					.c_str()
-						,&titleLen[x],&titlePos[x]));
+			titles.push_back(chtstr(temp[x].c_str() ,&titleLen[x],&titlePos[x]));
 			titlePos[x] = justifyString(titleWidth, titleLen[x], titlePos[x]);
 		}
 	}
@@ -2080,8 +2082,10 @@ void CDKOBJS::cleanCdkTitle()
 {
 //	CDKfreeChtypes(title);
 //	title = 0;
-	freeAndNull(titlePos);
-	freeAndNull(titleLen);
+//	freeAndNull(titlePos);
+	delete [] titlePos;
+//	freeAndNull(titleLen);
+	delete [] titleLen;
 	titleLines = 0;
 }
 
@@ -2251,7 +2255,7 @@ int CDKOBJS::getcCDKObject()
 {
 	// EObjectType cdktype = ObjTypeOf(this);
 	CDKOBJS *test = bindableObject();
-	int result = wgetch(InputWindowOf(this));
+	int result = wgetch(inputWindow);
 	// printf("%c %ul\n",result,result); //G.Schade
 	//BINDFN fn{0};
 	//CDKBINDING *bnd{0}; 
@@ -2436,16 +2440,19 @@ SEntry::SEntry(SScreen *cdkscreen,
 		int fWidth,
 		int minp,
 		int maxp,
-		bool Box,
-		bool shadowp,
+		bool obBox,
+		bool pshadow,
 		// GSchade Anfang
+		CDKOBJS* pmutter,
 		int highnr/*=0*/,
 		int aktent/*=-1*/
 		// GSchade Ende
-		):fieldWidth(fWidth),boxWidth(0)
+		): CDKOBJS(cdkscreen,cdkscreen->window,obBox,pshadow,vENTRY,/*acceptsFocus*/1,/*hasFocus*/1,/*isVisible*/1,/*objnr*/aktent)
+			,fieldWidth(fWidth),boxWidth(0),boxHeight(borderSize*2+1)
 {
 	// GSchade Anfang
-	cdktype=vENTRY;
+	mutter=pmutter?pmutter:this;
+//	cdktype=vENTRY;
 	// GSchade Ende
 	/* *INDENT-EQLS* */
 	int parentWidth      = getmaxxf(cdkscreen->window);
@@ -2456,10 +2463,9 @@ SEntry::SEntry(SScreen *cdkscreen,
 	int horizontalAdjust, oldWidth;
 
 	//	if ((entry = newCDKObject(SEntry, &my_funcs)) == 0) return (0);
-	::CDKOBJS();
-	objnr=aktent;
-	setBox(Box);
-	boxHeight =(borderSize * 2) + 1;
+//	objnr=aktent;
+	//setBox(Box);
+//	boxHeight =(borderSize * 2) + 1;
 
 	/*
 	 * If the fieldWidth is a negative value, the fieldWidth will
@@ -2479,7 +2485,7 @@ SEntry::SEntry(SScreen *cdkscreen,
 
 	/* Translate the label char *pointer to a chtype pointer. */
 	if (labelstr) {
-//		label = char2Chtypeh(labelstr, &labelLen, &junk /* GSchade Anfang*/ ,highnr /* GSchade Ende*/);
+		//		label = char2Chtypeh(labelstr, &labelLen, &junk /* GSchade Anfang*/ ,highnr /* GSchade Ende*/);
 		labelp=new chtstr(labelstr,&labelLen,&junk,highnr);
 		// GSchade Anfang
 		for(int i=0;labelp->getinh()[i];i++) {
@@ -2495,7 +2501,7 @@ SEntry::SEntry(SScreen *cdkscreen,
 	boxWidth = setCdkTitle(title, boxWidth);
 	horizontalAdjust =(boxWidth - oldWidth) / 2;
 
-	boxHeight += TitleLinesOf(this);
+	boxHeight += titleLines;
 
 	/*
 	 * Make sure we didn't extend beyond the dimensions of the window.
@@ -2518,7 +2524,7 @@ SEntry::SEntry(SScreen *cdkscreen,
 
 		/* Make the field window. */
 		fieldWin = subwin(win, 1, fieldWidth,
-				(ypos + TitleLinesOf(this) + borderSize),
+				(ypos + titleLines + borderSize),
 				(xpos + labelLen -labelumlz
 				 + horizontalAdjust
 				 + borderSize));
@@ -2530,7 +2536,7 @@ SEntry::SEntry(SScreen *cdkscreen,
 			/* Make the label win, if we need to. */
 			if (labelstr) {
 				labelWin = subwin(win, 1, labelLen,
-						ypos + TitleLinesOf(this) + borderSize,
+						ypos + titleLines + borderSize,
 						xpos + horizontalAdjust + borderSize);
 			}
 
@@ -2538,47 +2544,46 @@ SEntry::SEntry(SScreen *cdkscreen,
 			// info ist vorher noch leer
 			//efld.resize(maxp+3);
 			efld.reserve(maxp+3);
-			{
-				infoWidth = maxp + 3;
 
-				/* *INDENT-EQLS* Set up the rest of the structure. */
-				screen        = cdkscreen;
-				parent                = cdkscreen->window;
-				shadowWin             = 0;
-				fieldAttr             = fieldAttrp;
-//				fieldWidth            = fieldWidth;
-				filler                = fillerp;
-				hidden                = fillerp;
-				ObjOf(this)->inputWindow   = fieldWin;
-				ObjOf(this)->acceptsFocus  = TRUE;
-				ReturnOf(this)             = NULL;
-				shadow                = shadowp;
-				screenCol             = 0;
-				sbuch=0;
-				leftChar              = 0;
-				lbuch=0;
-				min                   = minp;
-				max                   = maxp;
-//				boxWidth              = boxWidth;
-//				boxHeight             = boxHeight;
-//				initExitType(this);
-        exitType =vNEVER_ACTIVATED;
-				dispType              = dispTypep;
-				callbfn            = &SEntry::CDKEntryCallBack;
+			infoWidth = maxp + 3;
 
-				/* Do we want a shadow? */
-				if (shadowp) {
-					shadowWin = newwin(
-							boxHeight,
-							boxWidth,
-							ypos + 1,
-							xpos + 1);
-				}
-				registerCDKObject(cdkscreen, vENTRY);
+			/* *INDENT-EQLS* Set up the rest of the structure. */
+//			screen        = cdkscreen;
+//			parent                = cdkscreen->window;
+			shadowWin             = 0;
+			fieldAttr             = fieldAttrp;
+			//				fieldWidth            = fieldWidth;
+			filler                = fillerp;
+			hidden                = fillerp;
+			/*ObjOf(this)->*/inputWindow   = fieldWin;
+//			ObjOf(this)->acceptsFocus  = TRUE;
+//			dataPtr             = NULL;
+//			shadow                = pshadow;
+			screenCol             = 0;
+			sbuch=0;
+			leftChar              = 0;
+			lbuch=0;
+			min                   = minp;
+			max                   = maxp;
+			//				boxWidth              = boxWidth;
+			//				boxHeight             = boxHeight;
+			//				initExitType(this);
+			exitType =vNEVER_ACTIVATED;
+			dispType              = dispTypep;
+			callbfn            = &SEntry::CDKEntryCallBack;
+
+			/* Do we want a shadow? */
+			if (pshadow) {
+				shadowWin = newwin(
+						boxHeight,
+						boxWidth,
+						ypos + 1,
+						xpos + 1);
 			}
+			registerCDKObject(cdkscreen, vENTRY);
 		}
 	}
-//	return (entry);
+	//	return (entry);
 } // SEntry::SEntry
 
 
@@ -2604,7 +2609,7 @@ const char* SEntry::activateCDKEntry(chtype *actions,int *Zweitzeichen/*=0*/,int
 			input = (chtype)getchCDKObject(&functionKey);
 			// GSchade Anfang
 			if (input==343) {
-	// 3.1.18: bei Return (343) pruefen, ob Teil von Alphalist oder FSelect, ob Schalter zur Anzeige der Auswahlen eingestellt; 
+	// 3.1.19: bei Return (343) pruefen, ob Teil von Alphalist oder FSelect, ob Schalter zur Anzeige der Auswahlen eingestellt; 
 	// falls ja, umstellen und nicht aufhoeren (vEARLY_EXIT),
 	// falls FSelect, dann dort inject, andernfalls Rückfrage zum Schluss 
         
@@ -2966,7 +2971,7 @@ int SEntry::injectCDKEntry(chtype input)
 		}
 	}
 	if (!complete) setExitType(0);
-	ResultOf(this).valueString = ret;
+	resultData.valueString = ret;
 	return (ret != 0/*unknownString*/);
 } // int SEntry::injectCDKEntry(chtype input)
 
@@ -3001,10 +3006,12 @@ void SEntry::setCDKEntryValue(const char *newValue)
 	}
 }
 
+/*
 const char* SEntry::getCDKEntryValue()
 {
 	return efld.c_str();
 }
+*/
 
 /*
  * This sets specific attributes of the entry field.
@@ -3163,11 +3170,13 @@ void SScreen::refreshCDKScreen(/*SScreen *cdkscreen*/)
 /*
  * This sets the widgets box attribute.
  */
+/*
 void CDKOBJS::setBox(bool Box)
 {
 	obbox = Box;
 	borderSize = Box ? 1 : 0;
 }
+*/
 
 /*
  * This sets the background attribute of the widget.
@@ -3219,13 +3228,14 @@ void CDKOBJS::saveDataCDK()
  * will not draw items highlighted unless it has focus.  Temporarily adjust the
  * focus of the scroll widget when drawing on it to get the right highlighting.
  */
+//   bool save = HasFocusObj(ObjOf(widget->scrollField));
 #define SaveFocus(widget) \
-   bool save = HasFocusObj(ObjOf(widget->scrollField)); \
-   HasFocusObj(ObjOf(widget->scrollField)) = \
-   HasFocusObj(ObjOf(widget->entryField))
+   bool save = widget->scrollField->hasFocus; \
+	 widget->scrollField->hasFocus=widget->entryField->hasFocus
 
+//   HasFocusObj(ObjOf(widget->scrollField)) = save
 #define RestoreFocus(widget) \
-   HasFocusObj(ObjOf(widget->scrollField)) = save
+	widget->scrollField->hasFocus=save
 
 void SAlphalist::injectMyScroller(chtype key)
 {
@@ -3258,7 +3268,7 @@ int SAlphalist::injectCDKAlphalist(chtype input)
    /* Determine the exit status. */
    if (this->exitType == vEARLY_EXIT)
       ret = 0/*unknownString*/;
-   ResultOf(this).valueString = ret;
+   resultData.valueString = ret;
    return (ret != 0/*unknownString*/);
 }
 
@@ -3285,9 +3295,7 @@ int SFSelect::injectCDKFselect(/*CDKOBJS *object, */chtype input)
 	}
 	/* Can we change into the directory? */
 	file = chdir(filename);
-	if (chdir(this->pwd
-				.c_str()
-				)) {
+	if (chdir(this->pwd.c_str())) {
 		return 0;
 	}
 	/* If it's not a directory, return the filename. */
@@ -3326,13 +3334,15 @@ int SFSelect::injectCDKFselect(/*CDKOBJS *object, */chtype input)
 /*
  * This sets multiple attributes of the widget.
  */
+/*
 void SAlphalist::setCDKAlphalist(vector<string> *plistp, chtype fillerChar, chtype highlight, bool Box)
 {
    setCDKAlphalistContents(plistp);
    setCDKAlphalistFillerChar(fillerChar);
    setCDKAlphalistHighlight(highlight);
-   setBox/*setCDKAlphalistBox*/(Box);
+   setCDKAlphalistBox(Box);
 }
+*/
 
 /*
  * This sets certain attributes of the scrolling list.
@@ -3419,18 +3429,22 @@ void SAlphalist::setCDKAlphalistContents(vector<string> *plistp)
 /*
  * This returns the contents of the widget.
  */
+/*
 vector<string> *SAlphalist::getCDKAlphalistContents()
 {
 	return &plist;
 }
+*/
 
 /*
  * Get/set the current position in the scroll-widget.
  */
+/*
 int SAlphalist::getCDKAlphalistCurrentItem()
 {
    return scrollField->currentItem;
 }
+*/
 
 void SAlphalist::setCDKAlphalistCurrentItem(int item)
 {
@@ -3448,29 +3462,37 @@ void SScroll::setCDKScrollCurrent(int item)
 /*
  * This sets the filler character of the entry field of the alphalist.
  */
+/*
 void SAlphalist::setCDKAlphalistFillerChar(chtype fillerCharacter)
 {
 	fillerChar = fillerCharacter;
 	entryField->filler=fillerCharacter;
 }
+*/
 
+/*
 chtype SAlphalist::getCDKAlphalistFillerChar()
 {
    return fillerChar;
 }
+*/
 
 /*
  * This sets the highlight bar attributes.
  */
+/*
 void SAlphalist::setCDKAlphalistHighlight(chtype hl)
 {
    highlight = hl;
 }
+*/
 
+/*
 chtype SAlphalist::getCDKAlphalistHighlight()
 {
    return highlight;
 }
+*/
 
 /*
  * This sets whether or not the widget will be drawn with a box.
@@ -3478,15 +3500,17 @@ chtype SAlphalist::getCDKAlphalistHighlight()
 /*
 void SAlphalist::setCDKAlphalistBox(bool Box)
 {
-   obbox = Box;
-   borderSize = Box ? 1 : 0;
+  obbox = Box;
+  borderSize = Box ? 1 : 0;
 }
 */
 
+/*
 bool SAlphalist::getCDKAlphalistBox()
 {
-   return obbox;
+  return obbox;
 }
+*/
 
 /*
  * These functions set the drawing characters of the widget.
@@ -3846,15 +3870,17 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 						 vector<string> *plistp,
 			       chtype fillerChar,
 			       chtype phighlight,
-			       bool Box,
-						 bool shadow,
+			       bool obBox,
+						 bool pshadow,
 						 // GSchade Anfang
 						 int highnr/*=0*/,
 						 int aktent/*=-1*/
 						 // GSchade Ende
-		): plist(*plistp),xpos(xplace),ypos(yplace),highlight(phighlight),fillerChar(fillerChar),shadow(shadow)
+		): CDKOBJS(cdkscreen,cdkscreen->window,obBox,pshadow,vALPHALIST,/*pAcceptsFocus*/1,/*phasFocus*/1,/*pisVisible*/1,/*objnr*/aktent),
+	plist(*plistp),xpos(xplace),ypos(yplace),highlight(phighlight),fillerChar(fillerChar)
 {
-	cdktype = vALPHALIST;
+//	cdktype = vALPHALIST;
+//	shadow=pshadow;
 	/* *INDENT-EQLS* */
 //	SAlphalist *alphalist      = 0;
 	int parentWidth              = getmaxx(cdkscreen->window);
@@ -3870,9 +3896,9 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 	};
 	/* *INDENT-ON* */
 
-	::CDKOBJS();
-	objnr=aktent;
-	setBox(Box);
+//	::CDKOBJS();
+//	objnr=aktent;
+//	setBox(Box);
 	/*
 	 * If the height is a negative value, the height will
 	 * be ROWS-height, otherwise, the height will be the
@@ -3902,14 +3928,14 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 	keypad(this->win, TRUE);
 	/* *INDENT-EQLS* Set some variables. */
 //	ScreenOf(this)         = cdkscreen;
-	screen									= cdkscreen;
-	this->parent            = cdkscreen->window;
+//	screen									= cdkscreen;
+//	this->parent            = cdkscreen->window;
 //	this->highlight         = highlight;
 //	this->fillerChar        = fillerChar;
 //	this->boxHeight         = boxHeight;
 //	this->boxWidth          = boxWidth;
 //	initExitType(this);
-	exitType=vNEVER_ACTIVATED;
+//	exitType=vNEVER_ACTIVATED;
 //	this->shadow            = shadow;
 	this->shadowWin         = 0;
 	/* Do we want a shadow? */
@@ -3918,17 +3944,16 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 	}
 
 	/* Create the entry field. */
-	tempWidth = (isFullWidth(width)
-			? FULL
-			: boxWidth - 2 - labelLen);
+	tempWidth = (isFullWidth(width) ? FULL : boxWidth - 2 - labelLen);
 	this->entryField = new SEntry(cdkscreen,
 			getbegx(this->win),
 			getbegy(this->win),
 			title, label,
 			A_NORMAL, fillerChar,
 			vMIXED, tempWidth, 0, 512,
-			Box, FALSE
+			obBox, FALSE
 			// GSchade Anfang
+			,this
 			,highnr
 			// GSchade Ende
 			);
@@ -3980,8 +4005,8 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 			tempWidth, 0, 
 			plistp,
 			NONUMBERS, A_REVERSE,
-			this,
-			Box, FALSE);
+			/*pmutter*/this,
+			obBox, FALSE);
 //	setCDKScrollULChar(this->scrollField, ACS_LTEE);
    ULChar=ACS_LTEE;
 //	setCDKScrollURChar(this->scrollField, ACS_RTEE);
@@ -4121,8 +4146,8 @@ void SScroll_basis::scroll_FixCursorPosition()
    int scrollbarAdj =(scrollbarPlacement == LEFT) ? 1 : 0;
    int ypos = SCREEN_YPOS(this,currentItem - currentTop);
    int xpos = SCREEN_XPOS(this,0) + scrollbarAdj;
-   wmove(InputWindowOf(this), ypos, xpos);
-   wrefresh(InputWindowOf(this));
+   wmove(inputWindow, ypos, xpos);
+   wrefresh(inputWindow);
 }
 
 void SScroll_basis::SetPosition(int item)
@@ -4187,11 +4212,13 @@ SScroll::SScroll(SScreen *cdkscreen,
 			 bool numbers,
 			 chtype phighlight,
 			 CDKOBJS *pmutter,
-			 bool Box,
-			 bool pshadow):mutter(pmutter?pmutter:this)
+			 bool obBox,
+			 bool pshadow)
+		: SScroll_basis(cdkscreen,cdkscreen->window,obBox,pshadow,vSCROLL,/*pAcceptsFocus*/1,/*phasFocus*/1,/*pisVisible*/1)
 {
+	mutter=pmutter?pmutter:this;
 	size_t listSize{plistp->size()};
-	cdktype=vSCROLL;
+//	cdktype=vSCROLL;
    /* *INDENT-EQLS* */
    //SScroll *scrollp           = 0;
    int parentWidth              = getmaxx(cdkscreen->window);
@@ -4213,8 +4240,8 @@ SScroll::SScroll(SScreen *cdkscreen,
    /* *INDENT-ON* */
 
 //   if ((scrollp = newCDKObject(SScroll, &my_funcs)) == 0) { destroyCDKObject(scrollp); return(0); }
-	::CDKOBJS();
-   setBox(Box);
+//	::CDKOBJS();
+//   setBox(Box);
 
    /*
     * If the height is a negative value, the height will
@@ -4248,12 +4275,8 @@ SScroll::SScroll(SScreen *cdkscreen,
    /*
     * Make sure we didn't extend beyond the dimensions of the window.
     */
-   boxWidth =(boxWidth > parentWidth
-			?(parentWidth - scrollAdjust)
-			: boxWidth);
-   boxHeight =(boxHeight > parentHeight
-			 ? parentHeight
-			 : boxHeight);
+   boxWidth =(boxWidth > parentWidth ?(parentWidth - scrollAdjust) : boxWidth);
+   boxHeight =(boxHeight > parentHeight ? parentHeight : boxHeight);
 
    setViewSize(listSize);
 
@@ -4300,17 +4323,17 @@ SScroll::SScroll(SScreen *cdkscreen,
 
    /* *INDENT-EQLS* Set the rest of the variables */
    //ScreenOf(this)           = cdkscreen;
-	 screen							 = cdkscreen;
-   parent              = cdkscreen->window;
+//	 screen							 = cdkscreen;
+//   parent              = cdkscreen->window;
    shadowWin           = 0;
    scrollbarPlacement  = splace;
    maxLeftChar         = 0;
    leftChar            = 0;
 //   initExitType(this);
-	 exitType=vNEVER_ACTIVATED;
-   ObjOf(this)->acceptsFocus = TRUE;
-   ObjOf(this)->inputWindow = win;
-   shadow              = pshadow;
+//	 exitType=vNEVER_ACTIVATED;
+//   ObjOf(this)->acceptsFocus = TRUE;
+   /*ObjOf(this)->*/inputWindow = win;
+//   shadow              = pshadow;
 	 highlight						 = phighlight;
    SetPosition(0);
    /* Create the scrolling list item list and needed variables. */
@@ -4574,7 +4597,7 @@ int SScroll::injectCDKScroll(/*CDKOBJS *object, */chtype input)
 		setExitType(0);
 	}
 	scroll_FixCursorPosition();
-	ResultOf(this/*widget*/).valueInt = ret;
+	resultData.valueInt = ret;
 	return (ret != unknownInt);
 } // static int _injectCDKScroll
 
@@ -4807,11 +4830,12 @@ SLabel::SLabel(SScreen *cdkscreen,
 		       int xplace,
 		       int yplace,
 					 vector<string> mesg,
-		       bool Box,
-		       bool shadow): boxWidth(INT_MIN),xpos(xplace),ypos(yplace),
-	rows(mesg.size()),
-	shadow(shadow)
+		       bool obBox,
+		       bool pshadow
+		): CDKOBJS(cdkscreen,cdkscreen->window,obBox,pshadow,vLABEL,/*pAcceptsFocus*/0,/*phasFocus*/0,/*pisVisible*/1)
+	,xpos(xplace),ypos(yplace), rows(mesg.size()),boxWidth(INT_MIN),boxHeight(rows+2*borderSize)
 {
+//	shadow=pshadow;
    /* *INDENT-EQLS* */
 //   SLabel *label      = 0;
    int parentWidth      = getmaxx(cdkscreen->window);
@@ -4821,16 +4845,13 @@ SLabel::SLabel(SScreen *cdkscreen,
    //int xpos             = xplace;
    //int ypos             = yplace;
 
-	::CDKOBJS();
-   if (rows <= 0
-			 )
-   {
+//	::CDKOBJS();
+   if (rows <= 0) {
       destroyCDKObject(/*label*/);
       return /*(0)*/;
    }
-
-   setCDKLabelBox(/*label, */Box);
-   boxHeight = rows + 2 * /*BorderOf(label)*/ borderSize;
+//   setBox(/*label, */Box);
+//   boxHeight = rows + 2 * /*BorderOf(label)*/ borderSize;
 
    /* Determine the box width. */
    for (size_t x = 0; x < mesg.size() ; x++) {
@@ -4864,8 +4885,8 @@ SLabel::SLabel(SScreen *cdkscreen,
    alignxy(cdkscreen->window, &xpos, &ypos, boxWidth, boxHeight);
 
    /* *INDENT-EQLS* Create the label. */
-   /*ScreenOf(label)*/screen     = cdkscreen;
-   /*label->*/parent        = cdkscreen->window;
+//   /*ScreenOf(label)*/screen     = cdkscreen;
+//   /*label->*/parent        = cdkscreen->window;
    /*label->*/win           = newwin(boxHeight, boxWidth, ypos, xpos);
    /*label->*/shadowWin     = 0;
 //   /*label->*/xpos          = xpos;
@@ -4874,11 +4895,11 @@ SLabel::SLabel(SScreen *cdkscreen,
 //   /*label->*/boxWidth      = boxWidth;
 //   /*label->*/boxHeight     = boxHeight;
    /*ObjOf(label)->*/inputWindow = /*label->*/win;
-   /*ObjOf(label)->*/hasFocus = FALSE;
+//   /*ObjOf(label)->*/hasFocus = FALSE;
 //   label->shadow        = shadow;
 
    /* Is the window null? */
-   if (/*label->*/win == 0)
+   if (/*label->*/!win)
    {
       destroyCDKObject(/*label*/);
       return /*(0)*/;
@@ -4899,18 +4920,11 @@ SLabel::SLabel(SScreen *cdkscreen,
 }
 
 /*
- * This sets the box flag for the label widget.
- */
-void SLabel::setCDKLabelBox(/*SLabel *label, */bool Box)
+bool SLabel::getCDKLabelBox()
 {
-   /*ObjOf(label)->*/obbox = Box;
-   /*ObjOf(label)->*/borderSize = Box ? 1 : 0;
+   return obbox;
 }
-
-bool SLabel::getCDKLabelBox(/*SLabel *label*/)
-{
-   return /*ObjOf(label)->*/obbox;
-}
+*/
 
 /*
  * This was added for the builder.
@@ -4923,14 +4937,16 @@ void SLabel::activateCDKLabel(/*SLabel *label, */chtype *actions GCC_UNUSED)
 /*
  * This sets multiple attributes of the widget.
  */
-void SLabel::setCDKLabel(/*SLabel *label, */
+// fand ich nur in: clock, serial, topsign, menu_ex 
+/*
+void SLabel::setCDKLabel(//SLabel *label,
 			 std::vector<std::string> mesg
 		, bool Box)
 {
-   setCDKLabelMessage(/*label, */mesg
-	 );
-   setCDKLabelBox(/*label, */Box);
+   setCDKLabelMessage(mesg);
+   setBox(Box);
 }
+*/
 
 /*
  * This sets the information within the label.
@@ -5269,15 +5285,6 @@ void SFSelect::drawCDKFselect(/*CDKOBJS *object, */bool Box GCC_UNUSED, bool obm
  * will not draw items highlighted unless it has focus.  Temporarily adjust the
  * focus of the scroll widget when drawing on it to get the right highlighting.
  */
-/*
-#define SaveFocus(widget) \
-   boolean save = HasFocusObj(ObjOf(widget->scrollField)); \
-   HasFocusObj(ObjOf(widget->scrollField)) = \
-   HasFocusObj(ObjOf(widget->entryField))
-
-#define RestoreFocus(widget) \
-   HasFocusObj(ObjOf(widget->scrollField)) = save
-	 */
 
 void SFSelect::drawMyScroller(/*SFSelect *widget*/)
 {
@@ -5633,18 +5640,16 @@ void SFSelect::setCDKFselect(/*SFSelect *fselect,*/
 		    bool Box GCC_UNUSED)
 {
 	/* *INDENT-EQLS* */
-	SScroll *fscroll   = this->scrollField;
-	SEntry *fentry     = this->entryField;
 	const char *tempDir        = 0;
 	/* Keep the info sent to us. */
 	this->fieldAttribute = fieldAttrib;
 	this->fillerCharacter = pfiller;
 	this->highlight = phighlight;
 	/* Set the attributes of the entry field/scrolling list. */
-	//   setCDKEntryFillerChar(fentry, filler);
-	fentry->filler=pfiller;
-	//   setCDKScrollHighlight(fscroll, phighlight);
-	fscroll->highlight=phighlight;
+	//   setCDKEntryFillerChar(entryField, filler);
+	entryField->filler=pfiller;
+	//   setCDKScrollHighlight(scrollField, phighlight);
+	scrollField->highlight=phighlight;
 
 	/* Only do the directory stuff if the directory is not null. */
 	if (directory) {
@@ -5663,17 +5668,13 @@ void SFSelect::setCDKFselect(/*SFSelect *fselect,*/
 			Beep();
 
 			/* Could not get into the directory, pop up a little message. */
-			mesg[0] = format1String("<C>Could not change into %s", newDirectory
-					.c_str()
-					);
+			mesg[0] = format1String("<C>Could not change into %s", newDirectory.c_str());
 			mesg[1] = errorMessage("<C></U>%s");
 			mesg[2]=" ";
 			mesg[3]="<C>Press Any Key To Continue.";
 
 			/* Pop Up a message. */
-			screen->popupLabel(/*ScreenOf(this), */
-					mesg
-					);
+			screen->popupLabel(/*ScreenOf(this), */ mesg);
 
 			/* Clean up some memory. */
 
@@ -5697,8 +5698,8 @@ void SFSelect::setCDKFselect(/*SFSelect *fselect,*/
 	this->sockAttribute=sockAttribute;
 
 	/* Set the contents of the entry field. */
-	fentry->setCDKEntryValue(/*fentry, */this->pwd);
-	fentry->drawCDKEntry(/*fentry, ObjOf(fentry)->*/obbox);
+	entryField->setCDKEntryValue(/*entryField, */this->pwd);
+	entryField->drawCDKEntry(/*entryField, ObjOf(entryField)->*/obbox);
 
 	/* Get the directory contents. */
 	if (setCDKFselectdirContents(/*this*/) == 0) {
@@ -5707,9 +5708,7 @@ void SFSelect::setCDKFselect(/*SFSelect *fselect,*/
 	}
 
 	/* Set the values in the scrolling list. */
-	fscroll->setCDKScrollItems(/*fscroll,*/
-			 								&dirContents,
-			FALSE);
+	scrollField->setCDKScrollItems(/*scrollField,*/ &dirContents, FALSE);
 }
 
 /*
@@ -6067,41 +6066,39 @@ SFSelect::SFSelect(
 		const char *fAttribute,
 		const char *lAttribute,
 		const char *sAttribute,
-		bool Box,
-		bool shadow,
+		bool obBox,
+		bool pshadow,
 		int highnr/*=0*/,
 		int aktent/*=-1*/
-		)
+		): CDKOBJS(cdkscreen,cdkscreen->window,obBox,pshadow,vFSELECT,/*pAcceptsFocus*/1,/*phasFocus*/1,/*pisVisible*/1,/*objnr*/aktent),
+	xpos(xplace),ypos(yplace),fillerCharacter(fillerChar),highlight(phighlight)
 {
-	cdktype = vFSELECT;
+//	cdktype = vFSELECT;
 	/* *INDENT-EQLS* */
 //	SFSelect *fselect  = 0;
 	int parentWidth      = getmaxx(cdkscreen->window);
 	int parentHeight     = getmaxy(cdkscreen->window);
 	int boxWidth;
 	int boxHeight;
-	int xpos             = xplace;
-	int ypos             = yplace;
+//	int xpos             = xplace;
+//	int ypos             = yplace;
 	int tempWidth        = 0;
 	int tempHeight       = 0;
 	int labelLen, junk;
-	int x;
 	/* *INDENT-OFF* */
-	static const struct
-	{
+	static const struct {
 		int from;
 		int to;
-	} bindings[] =
-	{
+	} bindings[] = {
 		{ CDK_BACKCHAR,	KEY_PPAGE },
 		{ CDK_FORCHAR,	KEY_NPAGE },
 	};
 	/* *INDENT-ON* */
 
 //	if ((fselect = newCDKObject(SFSelect, &my_funcs)) == 0) return (0);
-	::CDKOBJS();
-	objnr=aktent;
-	setBox(Box);
+//	::CDKOBJS();
+//	objnr=aktent;
+//	setBox(Box);
 
 	/*
 	 * If the height is a negative value, the height will
@@ -6135,21 +6132,21 @@ SFSelect::SFSelect(
 	keypad(this->win, TRUE);
 
 	/* *INDENT-EQLS* Set some variables. */
-	screen           = cdkscreen;
-	this->parent              = cdkscreen->window;
+//	screen           = cdkscreen;
+//	this->parent              = cdkscreen->window;
 	this->dirAttribute				=	dAttribute;
 	this->fileAttribute       = fAttribute;
 	this->linkAttribute				= lAttribute;
 	this->sockAttribute				= sAttribute;
-	this->highlight           = phighlight;
-	this->fillerCharacter     = fillerChar;
+//	this->highlight           = phighlight;
+//	this->fillerCharacter     = fillerChar;
 	this->fieldAttribute      = fieldAttribute;
 	this->boxHeight           = boxHeight;
 	this->boxWidth            = boxWidth;
 //	initExitType(this);
-	exitType=vNEVER_ACTIVATED;
-	ObjOf(this)->inputWindow = this->win;
-	this->shadow              = shadow;
+//	exitType=vNEVER_ACTIVATED;
+	/*ObjOf(this)->*/inputWindow = this->win;
+//	this->shadow              = shadow;
 	this->shadowWin           = 0;
 
    /* Get the present working directory. */
@@ -6162,16 +6159,14 @@ SFSelect::SFSelect(
 //	 chtype *chtypeString= char2Chtypeh(label, &labelLen, &junk);
 	 chtstr chtypeString(label,&labelLen,&junk);
 //   freeChtype(chtypeString);
-   tempWidth = (isFullWidth(width)
-		? FULL
-		: boxWidth - 2 - labelLen);
+   tempWidth = (isFullWidth(width) ? FULL : boxWidth - 2 - labelLen);
    this->entryField = new SEntry(cdkscreen,
 				      getbegx(this->win),
 				      getbegy(this->win),
 				      title, label,
 				      fieldAttribute, fillerChar,
 				      vMIXED, tempWidth, 0, 512,
-				      Box, FALSE,highnr);
+				      obBox, FALSE,this,highnr);
 
    /* Make sure the widget was created. */
    if (!this->entryField) {
@@ -6222,9 +6217,7 @@ SFSelect::SFSelect(
 
    /* Create the scrolling list in the selector. */
    tempHeight = getmaxy(this->entryField->win) - borderSize;
-   tempWidth = (isFullWidth(width)
-		? FULL
-		: boxWidth - 1);
+   tempWidth = (isFullWidth(width) ? FULL : boxWidth - 1);
    this->scrollField = new SScroll(cdkscreen,
 					getbegx(this->win),
 					getbegy(this->win) + tempHeight,
@@ -6234,8 +6227,8 @@ SFSelect::SFSelect(
 					0,
 					&this->dirContents,
 					NONUMBERS, this->highlight,
-					this,
-					Box, FALSE);
+					/*pmutter*/this,
+					obBox, FALSE);
 
    /* Set the lower left/right characters of the entry field. */
 //   scrollField->setCDKScrollULChar(/*this->scrollField, */ACS_LTEE);
@@ -6249,7 +6242,7 @@ SFSelect::SFSelect(
    }
 
    /* Setup the key bindings. */
-   for (x = 0; x <(int)SIZEOF(bindings); ++x)
+   for (int x = 0; x <(int)SIZEOF(bindings); ++x)
       bindCDKObject(/*vFSELECT,
 		     this, */
 		    (chtype)bindings[x].from,
@@ -6269,10 +6262,12 @@ SDialog::SDialog(SScreen *cdkscreen,
 			 int yplace,
 			 vector<string> *mesg,
 			 vector<string> *buttonLabel,
-			 chtype highlight,
-			 bool separator,
+			 chtype phighlight,
+			 bool pseparator,
 			 bool obBox,
-			 bool shadow)
+			 bool pshadow
+		): CDKOBJS(cdkscreen,cdkscreen->window,obBox,pshadow,vDIALOG,/*pAcceptsFocus*/1,/*phasFocus*/1,/*pisVisible*/1)
+	,separator(pseparator),highlight(phighlight)
 {
    /* *INDENT-EQLS* */
    // CDKDIALOG *dialog    = 0;
@@ -6285,8 +6280,8 @@ SDialog::SDialog(SScreen *cdkscreen,
 //   int temp             = 0;
    int buttonadj        = 0;
 
-	 ::CDKOBJS();
-	 setBox(obBox);
+//	 ::CDKOBJS();
+//	 setBox(obBox);
    boxHeight = mesg->size() + 2 * borderSize + separator + 1;
 
    for (size_t x = 0; x < mesg->size() ; x++) {
@@ -6320,20 +6315,20 @@ SDialog::SDialog(SScreen *cdkscreen,
 	 alignxy(cdkscreen->window, &xpos, &ypos, boxWidth, boxHeight);
 
    /* *INDENT-EQLS* Set up the dialog box attributes. */
-   screen            = cdkscreen;
-   this->parent               = cdkscreen->window;
+//   screen            = cdkscreen;
+//   this->parent               = cdkscreen->window;
    this->win                  = newwin (boxHeight, boxWidth, ypos, xpos);
    this->shadowWin            = 0;
    this->currentButton        = 0;
    this->boxHeight            = boxHeight;
    this->boxWidth             = boxWidth;
-   this->highlight            = highlight;
-   this->separator            = separator;
+//   this->highlight            = highlight;
+//   this->separator            = separator;
    // initExitType (this);
-	 exitType=vNEVER_ACTIVATED;
-	 acceptsFocus = TRUE;
+//	 exitType=vNEVER_ACTIVATED;
+//	 acceptsFocus = TRUE;
    inputWindow  = this->win;
-   this->shadow               = shadow;
+//   this->shadow               = shadow;
 
    /* If we couldn't create the window, we should return a null value. */
    if (!this->win) {
@@ -6351,9 +6346,7 @@ SDialog::SDialog(SScreen *cdkscreen,
 
    /* Create the string alignments. */
    for (size_t x = 0; x < pinfo.size(); x++) {
-      this->infoPos[x] = justifyString (boxWidth - 2 * borderSize/*BorderOf (this)*/,
-					  this->infoLen[x],
-					  this->infoPos[x]);
+      this->infoPos[x] = justifyString(boxWidth - 2 * borderSize/*BorderOf (this)*/, this->infoLen[x], this->infoPos[x]);
    }
 
    /* Was there a shadow? */
@@ -6610,12 +6603,16 @@ void SDialog::eraseCDKDialog(/*CDKOBJS *object*/)
 /*
  * This sets attributes of the dialog box.
  */
-void SDialog::setCDKDialog(/*CDKDIALOG *dialog, */chtype highlight, bool separator, bool obBox)
+// kommt nirgends vor
+/*
+void SDialog::setCDKDialog(//CDKDIALOG *dialog,
+									chtype highlight, bool separator, bool obBox)
 {
-   setCDKDialogHighlight(/*dialog, */highlight);
-   setCDKDialogSeparator(/*dialog, */separator);
-   setCDKDialogBox(/*dialog, */obBox);
+   setCDKDialogHighlight(highlight);
+   setCDKDialogSeparator(separator);
+   setBox(obBox);
 }
+*/
 
 /*
  * This sets the highlight attribute for the buttons.
@@ -6624,10 +6621,12 @@ void SDialog::setCDKDialogHighlight(/*CDKDIALOG *dialog, */chtype hi)
 {
    /*dialog->*/highlight = hi;
 }
-chtype SDialog::getCDKDialogHighlight(/*CDKDIALOG *dialog*/)
+/*
+chtype SDialog::getCDKDialogHighlight()
 {
-   return /*dialog->*/highlight;
+   return highlight;
 }
+*/
 
 /*
  * This sets whether or not the dialog box will have a separator line.
@@ -6636,23 +6635,19 @@ void SDialog::setCDKDialogSeparator(/*CDKDIALOG *dialog, */bool sep)
 {
    separator = sep;
 }
-bool SDialog::getCDKDialogSeparator(/*CDKDIALOG *dialog*/)
+/*
+bool SDialog::getCDKDialogSeparator()
 {
    return separator;
 }
+*/
 
 /*
- * This sets the box attribute of the widget.
- */
-void SDialog::setCDKDialogBox(/*CDKDIALOG *dialog, */bool obBox)
+bool SDialog::getCDKDialogBox()
 {
-   /*ObjOf (dialog)->*/obbox = obBox;
-   /*ObjOf (dialog)->*/borderSize = obBox ? 1 : 0;
+   return obbox;
 }
-bool SDialog::getCDKDialogBox(/*CDKDIALOG *dialog*/)
-{
-   return /*ObjOf (dialog)->*/obbox;
-}
+*/
 
 /*
  * This sets the background attribute of the widget.
@@ -6705,5 +6700,45 @@ void SDialog::unfocusCDKDialog(/*CDKOBJS *object*/)
    drawCDKDialog(/*this, ObjOf (widget)->*/obbox);
 }
 
+CDKOBJS::CDKOBJS(
+			 SScreen* pscreen
+			 ,WINDOW* pparent
+			 ,bool obBox
+			 ,bool pshadow
+			 ,EObjectType pcdktype
+			 ,bool pacceptsFocus
+			 ,bool phasFocus
+			 ,bool pisVisible
+			 ,int objnr/*=-1*/
+			 )
+		 :screen(pscreen),parent(pparent),obbox(obBox),borderSize(obBox?1:0),shadow(pshadow),cdktype(pcdktype),acceptsFocus(pacceptsFocus),hasFocus(phasFocus)
+     ,isVisible(pisVisible)
+	 /* set default line-drawing characters */
+	 ,ULChar(ACS_ULCORNER)
+	 ,URChar(ACS_URCORNER)
+	 ,LLChar(ACS_LLCORNER)
+	 ,LRChar(ACS_LRCORNER)
+	 ,VTChar(ACS_VLINE)
+	 ,HZChar(ACS_HLINE)
+	 ,BXAttr(A_NORMAL)
+	 /* set default exit-types */
+	 ,exitType(vNEVER_ACTIVATED)
+	 ,earlyExit(vNEVER_ACTIVATED)
+	{
+	 all_objects.push_back(this);
+	}
 //dummyRefreshData (Dialog)
 //dummySaveData (Dialog)
+SScroll_basis::SScroll_basis(
+			 SScreen* pscreen
+			 ,WINDOW* pparent
+			 ,bool obBox
+			 ,bool pshadow
+			 ,EObjectType pcdktype
+			 ,bool pacceptsFocus
+			 ,bool phasFocus
+			 ,bool pisVisible
+			 ,int objnr/*=-1*/
+			 )
+	: CDKOBJS(pscreen,pparent,obBox,pshadow,pcdktype,pacceptsFocus,phasFocus,pisVisible,objnr/*=-1*/)
+{}
