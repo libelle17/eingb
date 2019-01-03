@@ -2592,19 +2592,23 @@ const char* SEntry::activateCDKEntry(chtype *actions,int *Zweitzeichen/*=0*/,int
 	chtype input = 0;
 	bool functionKey;
 	const char *ret = 0;
-	int zweit;
-	if (!Zweitzeichen) Zweitzeichen=&zweit;
+	static int zweit,dritt;
+	if (!Zweitzeichen) Zweitzeichen=&zweit; // Schutz vor Speicherplatzverletzung
+	if (!Drittzeichen) Drittzeichen=&dritt;
 	/* Draw the widget. */
 	drawCDKEntry(/*entry, ObjOf(entry)->*/obbox);
-	// 3.1.18: bei Return pruefen, ob Teil von Alphalist oder FSelect, ob Schalter zur Anzeige der Auswahlen eingestellt; falls ja, umstellen und nicht aufhoeren (vEARLY_EXIT),
-	// falls FSelect, dann dort inject, andernfalls Rückfrage zum Schluss 
 	if (!actions) {
 		for (;;) {
 			//static int y=2;
 			*Zweitzeichen=0;
 			input = (chtype)getchCDKObject(&functionKey);
 			// GSchade Anfang
-			if (input==27) {
+			if (input==343) {
+	// 3.1.18: bei Return (343) pruefen, ob Teil von Alphalist oder FSelect, ob Schalter zur Anzeige der Auswahlen eingestellt; 
+	// falls ja, umstellen und nicht aufhoeren (vEARLY_EXIT),
+	// falls FSelect, dann dort inject, andernfalls Rückfrage zum Schluss 
+        
+			} if (input==27) {
 				*Zweitzeichen =(chtype)getchCDKObject(&functionKey);
 				if (*Zweitzeichen==194||*Zweitzeichen==195) {
 					*Drittzeichen =(chtype)getchCDKObject(&functionKey);
