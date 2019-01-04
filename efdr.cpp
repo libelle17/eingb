@@ -57,26 +57,6 @@ void Beep(void)
    fflush(stdout);
 }
 
-int getmaxxf(WINDOW *win)
-{
-	/*
-	int y, x;
-	getmaxyx(win, y, x);
-	return x;
-	*/
-  return (win)?(win)->_maxx:ERR;
-}
-
-int getmaxyf(WINDOW *win)
-{
-	/*
-	int y, x;
-	getmaxyx(win, y, x);
-	return y;
-	*/
-  return (win)?(win)->_maxy:ERR;
-}
-
 /*
  * If the dimension is a negative value, the dimension will be the full
  * height/width of the parent window - the value of the dimension.  Otherwise,
@@ -1965,10 +1945,10 @@ void SScroll::drawCDKScroll(bool Box,bool obmit)
 	// GSchade: auskommentieren und dann noch vor dem Wechsel zu anderem alle übrigen zeichnen
 	// if (akteinbart==einb_alphalist &&obmit) KLA
 	//	 if (obmit && Znr==mutter->objnr && !erstmals) KLA
-//	if (mutter->zeichnescroll) {
+	if (((ComboB*)mutter)->zeichnescroll) {
 		drawCDKScrollList(Box); 
 		wrefresh(parent); // gleichbedeutend: wrefresh(obj.screen->window);
-//	}
+	}
 	/*
 		 static int nr=0;
 		 ofstream prot;
@@ -2147,12 +2127,7 @@ CDKOBJS* CDKOBJS::bindableObject()
 	return this;
 }
 
-CDKOBJS* SFSelect::bindableObject()
-{
-	return entryField;
-}
-
-CDKOBJS* SAlphalist::bindableObject()
+CDKOBJS* ComboB::bindableObject()
 {
 	return entryField;
 }
@@ -2455,8 +2430,6 @@ SEntry::SEntry(SScreen *cdkscreen,
 //	cdktype=vENTRY;
 	// GSchade Ende
 	/* *INDENT-EQLS* */
-	int parentWidth      = getmaxxf(cdkscreen->window);
-	int parentHeight     = getmaxyf(cdkscreen->window);
 	int xpos             = xplace;
 	int ypos             = yplace;
 	int junk             = 0;
@@ -2607,25 +2580,34 @@ const char* SEntry::activateCDKEntry(chtype *actions,int *Zweitzeichen/*=0*/,int
 			//static int y=2;
 			*Zweitzeichen=0;
 			input = (chtype)getchCDKObject(&functionKey);
-			// GSchade Anfang
+			// GSchade Anfang //=Return
 			if (input==343) {
-	// 3.1.19: bei Return (343) pruefen, ob Teil von Alphalist oder FSelect, ob Schalter zur Anzeige der Auswahlen eingestellt; 
+	// 3.1.19: bei Return (343) pruefen, ob Teil von Alphalist oder FSelect, ob Schalter zur Anzeige der Auswahlen (zeichnescroll) eingestellt; 
 	// falls ja, umstellen und nicht aufhoeren (vEARLY_EXIT),
 	// falls FSelect, dann dort inject, andernfalls Rückfrage zum Schluss 
-        
-			} if (input==27) {
-				*Zweitzeichen =(chtype)getchCDKObject(&functionKey);
-				if (*Zweitzeichen==194||*Zweitzeichen==195) {
-					*Drittzeichen =(chtype)getchCDKObject(&functionKey);
+				if (mutter->cdktype==vALPHALIST && ((ComboB*)mutter)->zeichnescroll) {
+          ((ComboB*)mutter)->zeichnescroll=0;
+					// muss, wenn nicht gleich wieder auf Return gedrückt wird, wieder auf 1 gesetzt werden
+					*Zweitzeichen=-12;
 				}
-			} else if (input==9||(obpfeil && input==KEY_DOWN)) {
-				*Zweitzeichen=-9;
-			} else if (input==KEY_BTAB||(obpfeil && input==KEY_UP)) {
-				*Zweitzeichen=-8;
-			} else if (input==KEY_NPAGE) {
-				*Zweitzeichen=-10;
-			} else if (input==KEY_PPAGE) {
-				*Zweitzeichen=-11;
+			} else {
+				if (mutter->cdktype==vALPHALIST && !((ComboB*)mutter)->zeichnescroll) {
+          ((ComboB*)mutter)->zeichnescroll=1;
+				}
+				if (input==27) {
+					*Zweitzeichen =(chtype)getchCDKObject(&functionKey);
+					if (*Zweitzeichen==194||*Zweitzeichen==195) {
+						*Drittzeichen =(chtype)getchCDKObject(&functionKey);
+					}
+				} else if (input==9||(obpfeil && input==KEY_DOWN)) {
+					*Zweitzeichen=-9;
+				} else if (input==KEY_BTAB||(obpfeil && input==KEY_UP)) {
+					*Zweitzeichen=-8;
+				} else if (input==KEY_NPAGE) {
+					*Zweitzeichen=-10;
+				} else if (input==KEY_PPAGE) {
+					*Zweitzeichen=-11;
+				}
 			}
 //		if (0) {
 //				static bool afk{0}; static chtype ai{0}; static int aZz{0}; static EExitType	aex{vEARLY_EXIT};
@@ -3307,7 +3289,7 @@ int SFSelect::injectCDKFselect(/*CDKOBJS *object, */chtype input)
 	} else {
 		/* Set the file selector information. */
 		setCDKFselect(/*this, */filename,
-				this->fieldAttribute, this->fillerCharacter,
+				this->fieldAttribute, this->fillerChar,
 				this->highlight,
 				this->dirAttribute
 				.c_str()
@@ -3463,10 +3445,10 @@ void SScroll::setCDKScrollCurrent(int item)
  * This sets the filler character of the entry field of the alphalist.
  */
 /*
-void SAlphalist::setCDKAlphalistFillerChar(chtype fillerCharacter)
+void SAlphalist::setCDKAlphalistFillerChar(chtype fillerChar)
 {
-	fillerChar = fillerCharacter;
-	entryField->filler=fillerCharacter;
+	fillerChar = fillerChar;
+	entryField->filler=fillerChar;
 }
 */
 
@@ -3673,7 +3655,6 @@ static int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UN
 			// scrollp->destroyCDKScroll();
 			 scrollp->destroyObj();
 
-
 			 /* Clean up. */
 
 			 /* Beep at the user. */
@@ -3758,11 +3739,13 @@ void CDKOBJS::setCDKObjectPreProcess(/*CDKOBJS *obj, */PROCESSFN fn, void *data)
 /*
  * Set data for postprocessing.
  */
-void CDKOBJS::setCDKObjectPostProcess(/*CDKOBJS *obj, */PROCESSFN fn, void *data)
+/*
+void CDKOBJS::setCDKObjectPostProcess(PROCESSFN fn, void *data)
 {
    postProcessFunction = fn;
    postProcessData = data;
 }
+*/
 
 /*
  * This is the heart-beat of the widget.
@@ -3868,7 +3851,7 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 			       const char *title,
 			       const char *label,
 						 vector<string> *plistp,
-			       chtype fillerChar,
+			       chtype pfillerChar,
 			       chtype phighlight,
 			       bool obBox,
 						 bool pshadow,
@@ -3876,15 +3859,17 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 						 int highnr/*=0*/,
 						 int aktent/*=-1*/
 						 // GSchade Ende
-		): CDKOBJS(cdkscreen,cdkscreen->window,obBox,pshadow,vALPHALIST,/*pAcceptsFocus*/1,/*phasFocus*/1,/*pisVisible*/1,/*objnr*/aktent),
-	plist(*plistp),xpos(xplace),ypos(yplace),highlight(phighlight),fillerChar(fillerChar)
+		): ComboB(cdkscreen,cdkscreen->window,obBox,pshadow,vALPHALIST,/*pAcceptsFocus*/1,/*phasFocus*/1,/*pisVisible*/1
+			,/*xpos*/xplace,/*ypos*/yplace,height,width,/*highlight*/phighlight,/*fillerChar*/pfillerChar
+			,/*objnr*/aktent),
+	plist(*plistp)
 {
 //	cdktype = vALPHALIST;
 //	shadow=pshadow;
 	/* *INDENT-EQLS* */
 //	SAlphalist *alphalist      = 0;
-	int parentWidth              = getmaxx(cdkscreen->window);
-	int parentHeight             = getmaxy(cdkscreen->window);
+//	int parentWidth              = getmaxx(cdkscreen->window);
+//	int parentHeight             = getmaxy(cdkscreen->window);
 	int tempWidth                = 0;
 	int tempHeight               = 0;
 	int labelLen                 = 0;
@@ -3899,18 +3884,6 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 //	::CDKOBJS();
 //	objnr=aktent;
 //	setBox(Box);
-	/*
-	 * If the height is a negative value, the height will
-	 * be ROWS-height, otherwise, the height will be the
-	 * given height.
-	 */
-	boxHeight = setWidgetDimension(parentHeight, height, 0);
-	/*
-	 * If the width is a negative value, the width will
-	 * be COLS-width, otherwise, the width will be the
-	 * given width.
-	 */
-	boxWidth = setWidgetDimension(parentWidth, width, 0);
 	/* Translate the label char *pointer to a chtype pointer. */
 	if (label) {
 //		chtype *chtypeLabel = char2Chtypeh(label, &labelLen, &junk2 /* GSchade Anfang */ ,highnr /* GSchade Ende */);
@@ -4221,8 +4194,8 @@ SScroll::SScroll(SScreen *cdkscreen,
 //	cdktype=vSCROLL;
    /* *INDENT-EQLS* */
    //SScroll *scrollp           = 0;
-   int parentWidth              = getmaxx(cdkscreen->window);
-   int parentHeight             = getmaxy(cdkscreen->window);
+//   int parentWidth              = getmaxx(cdkscreen->window);
+//   int parentHeight             = getmaxy(cdkscreen->window);
    int xpos                     = xplace;
    int ypos                     = yplace;
    int scrollAdjust             = 0;
@@ -4838,8 +4811,8 @@ SLabel::SLabel(SScreen *cdkscreen,
 //	shadow=pshadow;
    /* *INDENT-EQLS* */
 //   SLabel *label      = 0;
-   int parentWidth      = getmaxx(cdkscreen->window);
-   int parentHeight     = getmaxy(cdkscreen->window);
+//   int parentWidth      = getmaxx(cdkscreen->window);
+//   int parentHeight     = getmaxy(cdkscreen->window);
 //   int boxWidth         = INT_MIN;
 //   int boxHeight;
    //int xpos             = xplace;
@@ -5643,7 +5616,7 @@ void SFSelect::setCDKFselect(/*SFSelect *fselect,*/
 	const char *tempDir        = 0;
 	/* Keep the info sent to us. */
 	this->fieldAttribute = fieldAttrib;
-	this->fillerCharacter = pfiller;
+	this->fillerChar = pfiller;
 	this->highlight = phighlight;
 	/* Set the attributes of the entry field/scrolling list. */
 	//   setCDKEntryFillerChar(entryField, filler);
@@ -5777,7 +5750,7 @@ static int completeFilenameCB(EObjectType objectType GCC_UNUSED,
 			.c_str()
 			,
 			fselect->fieldAttribute,
-			fselect->fillerCharacter,
+			fselect->fillerChar,
 			fselect->highlight,
 			fselect->dirAttribute
 			.c_str()
@@ -6060,7 +6033,7 @@ SFSelect::SFSelect(
 		const char *title,
 		const char *label,
 		chtype fieldAttribute,
-		chtype fillerChar,
+		chtype pfillerChar,
 		chtype phighlight,
 		const char *dAttribute,
 		const char *fAttribute,
@@ -6070,16 +6043,18 @@ SFSelect::SFSelect(
 		bool pshadow,
 		int highnr/*=0*/,
 		int aktent/*=-1*/
-		): CDKOBJS(cdkscreen,cdkscreen->window,obBox,pshadow,vFSELECT,/*pAcceptsFocus*/1,/*phasFocus*/1,/*pisVisible*/1,/*objnr*/aktent),
-	xpos(xplace),ypos(yplace),fillerCharacter(fillerChar),highlight(phighlight)
+		): ComboB(cdkscreen,cdkscreen->window,obBox,pshadow,vFSELECT,/*pAcceptsFocus*/1,/*phasFocus*/1,/*pisVisible*/1
+			,/*xpos*/xplace,/*ypos*/yplace,height,width,/*highlight*/phighlight,/*fillerChar*/pfillerChar
+			,/*objnr*/aktent
+				)
 {
 //	cdktype = vFSELECT;
 	/* *INDENT-EQLS* */
 //	SFSelect *fselect  = 0;
-	int parentWidth      = getmaxx(cdkscreen->window);
-	int parentHeight     = getmaxy(cdkscreen->window);
-	int boxWidth;
-	int boxHeight;
+//	int parentWidth      = getmaxx(cdkscreen->window);
+//	int parentHeight     = getmaxy(cdkscreen->window);
+//	int boxWidth;
+//	int boxHeight;
 //	int xpos             = xplace;
 //	int ypos             = yplace;
 	int tempWidth        = 0;
@@ -6099,20 +6074,6 @@ SFSelect::SFSelect(
 //	::CDKOBJS();
 //	objnr=aktent;
 //	setBox(Box);
-
-	/*
-	 * If the height is a negative value, the height will
-	 * be ROWS-height, otherwise, the height will be the
-	 * given height.
-	 */
-	boxHeight = setWidgetDimension(parentHeight, height, 0);
-
-	/*
-	 * If the width is a negative value, the width will
-	 * be COLS-width, otherwise, the width will be the
-	 * given width.
-	 */
-	boxWidth = setWidgetDimension(parentWidth, width, 0);
 
 	/* Rejustify the x and y positions if we need to. */
 	alignxy(cdkscreen->window, &xpos, &ypos, boxWidth, boxHeight);
@@ -6139,7 +6100,7 @@ SFSelect::SFSelect(
 	this->linkAttribute				= lAttribute;
 	this->sockAttribute				= sAttribute;
 //	this->highlight           = phighlight;
-//	this->fillerCharacter     = fillerChar;
+//	this->fillerChar     = pfillerChar;
 	this->fieldAttribute      = fieldAttribute;
 	this->boxHeight           = boxHeight;
 	this->boxWidth            = boxWidth;
@@ -6724,6 +6685,8 @@ CDKOBJS::CDKOBJS(
 	 /* set default exit-types */
 	 ,exitType(vNEVER_ACTIVATED)
 	 ,earlyExit(vNEVER_ACTIVATED)
+	 ,parentWidth(parent?parent->_maxx:ERR)
+	 ,parentHeight(parent?parent->_maxy:ERR)
 	{
 	 all_objects.push_back(this);
 	}
@@ -6741,4 +6704,43 @@ SScroll_basis::SScroll_basis(
 			 ,int objnr/*=-1*/
 			 )
 	: CDKOBJS(pscreen,pparent,obBox,pshadow,pcdktype,pacceptsFocus,phasFocus,pisVisible,objnr/*=-1*/)
-{}
+{
+}
+
+ComboB::ComboB(
+		SScreen* pscreen
+		,WINDOW* pparent
+		,bool obBox
+		,bool pshadow
+		,EObjectType pcdktype
+		,bool pacceptsFocus
+		,bool phasFocus
+		,bool pisVisible
+		,int xplace
+		,int yplace
+		,int height
+		,int width
+		,chtype phighlight
+		,chtype pfillerChar
+		,int objnr/*=-1*/
+		)
+	:CDKOBJS(pscreen,pparent,obBox,pshadow,pcdktype,pacceptsFocus,phasFocus,pisVisible,objnr),xpos(xplace),ypos(yplace)
+	 ,height(height),width(width),highlight(phighlight),fillerChar(pfillerChar)
+	 ,boxHeight(setWidgetDimension(parentHeight, height, 0))
+	 ,boxWidth(setWidgetDimension(parentWidth, width, 0))
+{
+	/*
+	 * If the height is a negative value, the height will
+	 * be ROWS-height, otherwise, the height will be the
+	 * given height.
+	 */
+//	boxHeight = setWidgetDimension(parentHeight, height, 0);
+
+	/*
+	 * If the width is a negative value, the width will
+	 * be COLS-width, otherwise, the width will be the
+	 * given width.
+	 */
+//	boxWidth = setWidgetDimension(parentWidth, width, 0);
+
+}

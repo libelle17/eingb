@@ -347,6 +347,8 @@ int main(int argc, char **argv)
 			// Seite nach oben
 		} else if (Zweitzeichen==-11) {
 			Znr-=maxh-1;
+			// Return gedrückt
+		} else if (Zweitzeichen==-12) {
 			// Alt- +Buchstabe
 		} else {
 			//			mvwprintw(cdkscreen->window,1,30,"Zweitzeichen: %c",Zweitzeichen);

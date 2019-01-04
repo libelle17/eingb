@@ -535,8 +535,8 @@ enum EExitType
 		, vERROR
 };
 
-int getmaxxf(WINDOW *win);
-int getmaxyf(WINDOW *win);
+//int getmaxxf(WINDOW *win);
+//int getmaxyf(WINDOW *win);
 
 void Beep();
 int floorCDK(double value);
@@ -664,6 +664,8 @@ struct CDKOBJS
    EExitType	exitType;
    EExitType	earlyExit;
 	 CDKOBJS *mutter=0;
+	 int parentWidth;      
+	 int parentHeight;     
 	 int objnr=-1; // Objektnr bei Eingabefeld, wird wahrscheinlich nicht gebraucht
 	 CDKOBJS(
 			 SScreen* pscreen
@@ -719,7 +721,7 @@ struct CDKOBJS
 	 //	 void setCdkExitType(chtype ch);
 	 void setExitType(chtype ch);
 	 void setCDKObjectPreProcess(/*CDKOBJS *obj, */PROCESSFN fn, void *data);
-	 void setCDKObjectPostProcess(/*CDKOBJS *obj, */PROCESSFN fn, void *data);
+//	 void setCDKObjectPostProcess(/*CDKOBJS *obj, */PROCESSFN fn, void *data);
 //	 CDKOBJS();
 	 ~CDKOBJS();
 	 void unregisterCDKObject(EObjectType cdktype/*, void *object*/);
@@ -743,9 +745,39 @@ struct CDKOBJS
 	 void setCDKObjectBackgroundColor(/*CDKOBJS *obj, */const char *color);
 }; // struct CDKOBJS
 
+struct SEntry;
+struct SScroll;
 struct ComboB:CDKOBJS
 {
-	 bool zeichnescroll=1;
+	SEntry*	entryField;
+	SScroll*	scrollField;
+	int		xpos;
+	int		ypos;
+	int		height;
+	int		width;
+	chtype	highlight;
+	chtype	fillerChar;
+	int		boxHeight;
+	int		boxWidth;
+	bool zeichnescroll=1;
+	CDKOBJS* bindableObject();
+	ComboB(
+			 SScreen* pscreen
+			 ,WINDOW* pparent
+			 ,bool obBox
+			 ,bool pshadow
+			 ,EObjectType pcdktype
+			 ,bool pacceptsFocus
+			 ,bool phasFocus
+			 ,bool pisVisible
+			 ,int xplace
+			 ,int yplace
+			 ,int height
+			 ,int width
+			 ,chtype phighlight
+			 ,chtype pfillerChar
+			 ,int objnr/*=-1*/
+			);
 };
 
 /*
@@ -977,23 +1009,14 @@ static int preProcessEntryField(EObjectType cdktype GCC_UNUSED, void
 /*
  * Define the CDK file selector widget structure.
  */
-struct SFSelect:CDKOBJS
+struct SFSelect:ComboB
 {
 	int setCDKFselectdirContents(/*SFSelect *fselect*/);
 	//   CDKOBJS	obj;
-	SEntry *	entryField;
-	SScroll *	scrollField;
-	CDKOBJS* bindableObject();
 	std::vector<std::string> dirContents;
 	std::string pwd;
 	std::string pfadname;
-	int		xpos;
-	int		ypos;
-	int		boxHeight;
-	int		boxWidth;
 	chtype	fieldAttribute;
-	chtype	fillerCharacter;
-	chtype	highlight;
 	std::string dirAttribute;
 	std::string fileAttribute;
 	std::string linkAttribute;
@@ -1035,7 +1058,8 @@ struct SFSelect:CDKOBJS
 	 int injectCDKFselect(chtype input);
 	 int injectObj(chtype ch){return injectCDKFselect(ch);}
 	 void injectMyScroller(chtype key);
-	 void setCDKFselect(/*SFSelect *fselect, */const char *directory, chtype fieldAttrib, chtype filler, chtype highlight, const char *dirAttribute, const char *fileAttribute, const char *linkAttribute, const char *sockAttribute, bool Box GCC_UNUSED);
+	 void setCDKFselect(/*SFSelect *fselect, */const char *directory, chtype fieldAttrib, chtype filler, chtype highlight, 
+			 const char *dirAttribute, const char *fileAttribute, const char *linkAttribute, const char *sockAttribute, bool Box GCC_UNUSED);
 	 const char *contentToPath(/*SFSelect *fselect, */const char *content);
 	 void focusCDKFileSelector();
 	 void focusObj(){focusCDKFileSelector();}
@@ -1044,21 +1068,9 @@ struct SFSelect:CDKOBJS
 }; // struct SFSelect:CDKOBJS
 //typedef struct SFSelect CDKFSELECT;
 
-struct SAlphalist:CDKOBJS
+struct SAlphalist:ComboB
 {
-   SEntry*	entryField;
-   SScroll*	scrollField;
 	 std::vector<std::string> plist;
-   int		xpos;
-   int		ypos;
-   int		height;
-   int		width;
-   int		boxWidth;
-   int		boxHeight;
-	 bool zeichnescroll=1;
-   chtype	highlight;
-   chtype	fillerChar;
-	 CDKOBJS* bindableObject();
 	 SAlphalist(SScreen *cdkscreen,
 			 int xplace,
 			 int yplace,
@@ -1094,7 +1106,7 @@ struct SAlphalist:CDKOBJS
 //	 std::vector<std::string> *getCDKAlphalistContents();
 //	 int getCDKAlphalistCurrentItem();
 	 void setCDKAlphalistCurrentItem(int item);
-//	 void setCDKAlphalistFillerChar(chtype fillerCharacter);
+//	 void setCDKAlphalistFillerChar(chtype fillerChar);
 //	 chtype getCDKAlphalistFillerChar();
 //	 void setCDKAlphalistHighlight(chtype hl);
 //	 chtype getCDKAlphalistHighlight();
