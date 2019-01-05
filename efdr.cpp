@@ -13,6 +13,12 @@
 #include <fstream> // ofstream
 using namespace std;
 extern struct hotkst hk[];
+const char* const NUMBER_FMT{"%4d. %s"};
+// #define isChar(c)               ((int)(c) >= 0 && (int)(c) < KEY_MIN)
+int isChar(const int c)
+{
+	return c>=0 && c<KEY_MIN;
+}
 
 void chtstr::gibaus() const
 { 
@@ -23,7 +29,7 @@ void chtstr::gibaus() const
 // chtstr::chtstr(size_t len):len(len) { inh=new chtype[len]; }
 
 // GSchade 17.11.18; s. cdk.h
-einbauart akteinbart;
+// einbauart akteinbart;
 
 //ALL_SCREENS *all_screens;
 vector<SScreen*> all_screens;
@@ -206,7 +212,7 @@ chtstr::chtstr(const char *string, int *to, int *align, const int highinr/*=0*/)
 					x = 0;
 					while (string[++from] != R_MARKER && string[from]) {
 						if (isdigit ((unsigned char)string[from])) {
-							adjust = (adjust * 10) + DigitOf (string[from]);
+							adjust = (adjust * 10) + DigitOf(string[from]);
 							x++;
 						}
 					}
@@ -577,16 +583,15 @@ void writeChtypeAttrib(WINDOW *window,
 		int start,
 		int end)
 {
+	int display;
 	/* *INDENT-EQLS* */
-	int diff             = end - start;
-	int display          = 0;
-	int x                = 0;
+	int diff=end-start;
 
 	if (align == HORIZONTAL) {
 		/* Draw the message on a horizontal axis. */
 		display = MINIMUM(diff, getmaxx(window) - xpos);
 		int altumlz=0;
-		for (x = 0; x < display; x++) {
+		for (int x = 0; x < display; x++) {
 			// GSchade 25.9.18
 			if (1&&((int)(unsigned char)string[x+start]==194||(int)(unsigned char)string[x+start]==195)) {
 				//			printf("Buchstabe: %c %i\r\n",(unsigned char)string[x+start], (int)(unsigned char)string[x+start]);
@@ -614,7 +619,7 @@ void writeChtypeAttrib(WINDOW *window,
 	} else {
 		/* Draw the message on a vertical axis. */
 		display = MINIMUM(diff, getmaxy(window) - ypos);
-		for (x = 0; x < display; x++) {
+		for (int x = 0; x < display; x++) {
 			(void)mvwaddch(window, ypos + x, xpos, string[x + start] | attr);
 		}
 	}
@@ -751,15 +756,15 @@ void deleteCursesWindow(WINDOW *window)
 void moveCursesWindow(WINDOW *window, int xdiff, int ydiff)
 {
 	if (window) {
-		int xpos, ypos;
-		getbegyx(window, ypos, xpos);
-		(void)setbegyx(window,(short)ypos,(short)xpos);
-		window->_begy=ypos;
-		window->_begx=xpos;
-		xpos += xdiff;
-		ypos += ydiff;
+		// int xpos, ypos;
+		// getbegyx(window, ypos, xpos);
+		// (void)setbegyx(window,(short)ypos,(short)xpos);
+		int ypos{window->_begy+ydiff}; // += xdiff;
+		int xpos{window->_begx+xdiff}; // += xdiff;
 		werase(window);
-		(void)setbegyx(window,(short)ypos,(short)xpos);
+//		(void)setbegyx(window,(short)ypos,(short)xpos);
+		window->_begy=(short)ypos;
+		window->_begx=(short)xpos;
 	}
 }
 
@@ -768,12 +773,13 @@ int comparSort(const void *a, const void *b)
 {
 	return strcmp(*(const char *const *)a,(*(const char *const *)b));
 }
-
+/*
 void sortList(CDK_CSTRING *list, int length)
 {
 	if (length > 1)
 		qsort(list,(unsigned)length, sizeof(list[0]), comparSort);
 }
+*/
 
 /*
  * This looks for a subset of a word in the given list.
@@ -1290,7 +1296,7 @@ CDKOBJS* SScreen::handleMenu(/*SScreen *screen, */CDKOBJS *menu, CDKOBJS *oldobj
 				if (menu->injectObj(chtype(key))) {
 					done=menu->resultData.valueInt;
 				} else {
-					done=unknownInt;
+					done=-1; // unknownInt;
 				}
 				break;
 		}
@@ -1425,36 +1431,8 @@ void CDKOBJS::setScreenIndex(SScreen *pscreen)
 {
   screen=pscreen;
 	screen->object.push_back(this);
-	screenIndex=screen->object.size();
+	screenIndex=screen->object.size()-1;
 }
-
-
-/*
- * Create a new object beginning with a CDKOBJS struct.  The whole object is
- * initialized to zeroes except for special cases which have known values.
- */
-/*
-CDKOBJS::CDKOBJS() // void *_newCDKObject(unsigned size, const CDKFUNCS * funcs)
-{
-	 hasFocus = TRUE;
-	 isVisible = TRUE;
-
-	 all_objects.push_back(this);
-
-	 // set default line-drawing characters
-	 ULChar = ACS_ULCORNER;
-	 URChar = ACS_URCORNER;
-	 LLChar = ACS_LLCORNER;
-	 LRChar = ACS_LRCORNER;
-	 HZChar = ACS_HLINE;
-	 VTChar = ACS_VLINE;
-	 BXAttr = A_NORMAL;
-
-	 // set default exit-types 
-	 exitType = vNEVER_ACTIVATED;
-	 earlyExit = vNEVER_ACTIVATED;
-}
-*/
 
 CDKOBJS::~CDKOBJS()
 {
@@ -1543,16 +1521,11 @@ void SScroll::addCDKScrollItem(/*SScroll *scrollp,*/ const char *item)
 {
    int itemNumber = /*scrollp->*/ listSize ;
    int widestItem = WidestItem(/*scrollp*//*this*/);
-   if (
-       allocListItem(/*scrollp,*/
-		      itemNumber,
-		      /*scrollp->*/numbers ?(itemNumber + 1) : 0,
-		      item)) {
+   if (allocListItem(/*scrollp,*/ itemNumber, /*scrollp->*/numbers ?(itemNumber + 1) : 0, item)) {
       /* Determine the size of the widest item. */
       widestItem = MAXIMUM(/*scrollp->*/itemLen[itemNumber], widestItem);
       updateViewWidth(/*scrollp, */widestItem);
-      setViewSize(/*scrollp, *//*scrollp->*/ listSize 
-					);
+      setViewSize(/*scrollp, *//*scrollp->*/ listSize);
    }
 }
 
@@ -1562,17 +1535,11 @@ void SScroll::addCDKScrollItem(/*SScroll *scrollp,*/ const char *item)
 void SScroll::insertCDKScrollItem(/*SScroll *scrollp, */const char *item)
 {
 	int widestItem = WidestItem(/*scrollp*//*this*/);
-	if (
-			allocListItem(/*scrollp,*/
-				/*scrollp->*/currentItem,
-				/*scrollp->*/numbers ?(/*scrollp->*/currentItem + 1) : 0,
-				item))
-	{
+	if (allocListItem(/*scrollp,*/ /*scrollp->*/currentItem, /*scrollp->*/numbers ?(/*scrollp->*/currentItem + 1) : 0, item)) {
 		/* Determine the size of the widest item. */
 		widestItem = MAXIMUM(/*scrollp->*/itemLen[/*scrollp->*/currentItem], widestItem);
 		updateViewWidth(/*scrollp, */widestItem);
-		setViewSize(/*scrollp, *//*scrollp->*/ listSize 
-				);
+		setViewSize(/*scrollp, *//*scrollp->*/ listSize);
 		resequence(/*scrollp*/);
 	}
 }
@@ -1660,7 +1627,7 @@ void SEntry::moveCDKEntry(/*CDKOBJS *object,*/
 		ypos = getbegy(this->win) + yplace;
 	}
 	/* Adjust the window if we need to. */
-	alignxy(WindowOf(this), &xpos, &ypos, this->boxWidth, this->boxHeight);
+	alignxy(screen->window, &xpos, &ypos, this->boxWidth, this->boxHeight);
 	/* Get the difference. */
 	xdiff = currentX - xpos;
 	ydiff = currentY - ypos;
@@ -1670,7 +1637,7 @@ void SEntry::moveCDKEntry(/*CDKOBJS *object,*/
 	moveCursesWindow(this->labelWin, -xdiff, -ydiff);
 	moveCursesWindow(this->shadowWin, -xdiff, -ydiff);
 	/* Touch the windows so they 'move'. */
-	refreshCDKWindow(WindowOf(this));
+	refreshCDKWindow(screen->window);
 	/* Redraw the window, if they asked for it. */
 	if (refresh_flag) {
 		drawCDKEntry(obbox);
@@ -1703,7 +1670,7 @@ void SAlphalist::moveCDKAlphalist(
       ypos = getbegy(this->win) + yplace;
    }
    /* Adjust the window if we need to. */
-   alignxy(WindowOf(this), &xpos, &ypos, this->boxWidth, this->boxHeight);
+   alignxy(screen->window, &xpos, &ypos, this->boxWidth, this->boxHeight);
    /* Get the difference. */
    xdiff = currentX - xpos;
    ydiff = currentY - ypos;
@@ -1714,7 +1681,7 @@ void SAlphalist::moveCDKAlphalist(
    entryField->moveCDKEntry(xplace, yplace, relative, FALSE);
    scrollField->moveCDKScroll(xplace, yplace+abstand+obbox, relative, FALSE);
    /* Touch the windows so they 'move'. */
-   refreshCDKWindow(WindowOf(this));
+   refreshCDKWindow(screen->window);
    /* Redraw the window, if they asked for it. */
    if (refresh_flag) {
       drawCDKAlphalist(obbox);
@@ -1747,7 +1714,7 @@ void SFSelect::moveCDKFselect(/*CDKOBJS *object,*/
 		ypos = getbegy(this->win) + yplace;
 	}
 	/* Adjust the window if we need to. */
-	alignxy(WindowOf(this), &xpos, &ypos, this->boxWidth, this->boxHeight);
+	alignxy(screen->window, &xpos, &ypos, this->boxWidth, this->boxHeight);
 	/* Get the difference. */
 	xdiff = currentX - xpos;
 	ydiff = currentY - ypos;
@@ -1770,12 +1737,11 @@ void SFSelect::moveCDKFselect(/*CDKOBJS *object,*/
  */
 const char *SFSelect::activateCDKFselect(/*SFSelect *fselect, */chtype *actions,int *Zweitzeichen/*=0*/,int *Drittzeichen/*=0*/,int obpfeil/*=0*/)
 {
-	const char *ret = 0;
 #ifndef false
    /* Draw the widget. */
    drawCDKFselect(obbox,/*obmitscroller*/1);
    /* Activate the widget. */
-   ret = entryField->activateCDKEntry(actions,Zweitzeichen,Drittzeichen,obpfeil);
+   const char *ret = entryField->activateCDKEntry(actions,Zweitzeichen,Drittzeichen,obpfeil);
    /* Copy the exit type from the entry field. */
 //   copyExitType(this, this->entryField);
 	 exitType=entryField->exitType;
@@ -1786,6 +1752,7 @@ const char *SFSelect::activateCDKFselect(/*SFSelect *fselect, */chtype *actions,
    return 0;
 #else
 
+	const char *ret = 0;
 	chtype input = 0;
 	bool functionKey;
 	/* Draw the widget. */
@@ -1840,7 +1807,7 @@ void SScroll::moveCDKScroll(
       ypos = getbegy(this->win) + yplace;
    }
    /* Adjust the window if we need to. */
-   alignxy(WindowOf(this), &xpos, &ypos, this->boxWidth, this->boxHeight);
+   alignxy(screen->window, &xpos, &ypos, this->boxWidth, this->boxHeight);
    /* Get the difference. */
    int xdiff = currentX - xpos;
    int ydiff = currentY - ypos;
@@ -1850,7 +1817,7 @@ void SScroll::moveCDKScroll(
    moveCursesWindow(this->shadowWin, -xdiff, -ydiff);
    moveCursesWindow(this->scrollbarWin, -xdiff, -ydiff);
    /* Touch the windows so they 'move'. */
-   refreshCDKWindow(WindowOf(this));
+   refreshCDKWindow(screen->window);
    /* Redraw the window, if they asked for it. */
    if (refresh_flag) {
 		 // hier entstehen keine Fehler
@@ -1945,7 +1912,7 @@ void SScroll::drawCDKScroll(bool Box,bool obmit)
 	// GSchade: auskommentieren und dann noch vor dem Wechsel zu anderem alle übrigen zeichnen
 	// if (akteinbart==einb_alphalist &&obmit) KLA
 	//	 if (obmit && Znr==mutter->objnr && !erstmals) KLA
-	if (((ComboB*)mutter)->zeichnescroll) {
+	if ((mutter->cdktype!=vALPHALIST && mutter->cdktype!=vFSELECT) || ((ComboB*)mutter)->zeichnescroll) {
 		drawCDKScrollList(Box); 
 		wrefresh(parent); // gleichbedeutend: wrefresh(obj.screen->window);
 	}
@@ -2581,31 +2548,41 @@ const char* SEntry::activateCDKEntry(chtype *actions,int *Zweitzeichen/*=0*/,int
 			*Zweitzeichen=0;
 			input = (chtype)getchCDKObject(&functionKey);
 			// GSchade Anfang //=Return
-			if (input==343) {
+			if (input==KEY_ENTER) { // 343, oktal: 0527, in curses.h
 	// 3.1.19: bei Return (343) pruefen, ob Teil von Alphalist oder FSelect, ob Schalter zur Anzeige der Auswahlen (zeichnescroll) eingestellt; 
 	// falls ja, umstellen und nicht aufhoeren (vEARLY_EXIT),
 	// falls FSelect, dann dort inject, andernfalls Rückfrage zum Schluss 
-				if (mutter->cdktype==vALPHALIST && ((ComboB*)mutter)->zeichnescroll) {
-          ((ComboB*)mutter)->zeichnescroll=0;
-					// muss, wenn nicht gleich wieder auf Return gedrückt wird, wieder auf 1 gesetzt werden
-					*Zweitzeichen=-12;
-				} else if (mutter->cdktype==vFSELECT && ((ComboB*)mutter)->zeichnescroll) {
-					ret=((SFSelect*)mutter)->injectCDKFselect(/*CDKOBJS *object, */input)?resultData.valueString:0;
-					if (ret) {
+				if ((mutter->cdktype==vALPHALIST || mutter->cdktype==vFSELECT) && ((ComboB*)mutter)->zeichnescroll) {
+					if (mutter->cdktype==vALPHALIST) {
 						((ComboB*)mutter)->zeichnescroll=0;
+						// muss, wenn nicht gleich wieder auf Return gedrückt wird, wieder auf 1 gesetzt werden
+						*Zweitzeichen=-12;
+					} else if (mutter->cdktype==vFSELECT) {
+						int iret{((SFSelect*)mutter)->injectCDKFselect(/*CDKOBJS *object, */input)};
+						ret =iret?resultData.valueString:0;
+						if (((SFSelect*)mutter)->exitType) {
+							((ComboB*)mutter)->zeichnescroll=0;
+						} else {
+							((ComboB*)mutter)->zeichnescroll=1;
+						}
+						//					exitType = vNORMAL;
+						*Zweitzeichen=-12;
+						return ret;
 					}
-//					exitType = vNORMAL;
-					*Zweitzeichen=-12;
-					return ret;
 				}
 			} else {
-				if (mutter->cdktype==vALPHALIST && !((ComboB*)mutter)->zeichnescroll) {
+				if ((mutter->cdktype==vALPHALIST || mutter->cdktype==vFSELECT) && !((ComboB*)mutter)->zeichnescroll) {
           ((ComboB*)mutter)->zeichnescroll=1;
 				}
 				if (input==27) {
 					*Zweitzeichen =(chtype)getchCDKObject(&functionKey);
 					if (*Zweitzeichen==194||*Zweitzeichen==195) {
 						*Drittzeichen =(chtype)getchCDKObject(&functionKey);
+					} else if (*Zweitzeichen=='+') {
+						// Vervollständigen
+						if (mutter->cdktype==vALPHALIST) {
+							completeWordCB(mutter->cdktype, 0, (ComboB*)mutter, 0);
+						}
 					}
 				} else if (input==9||(obpfeil && input==KEY_DOWN)) {
 					*Zweitzeichen=-9;
@@ -2749,10 +2726,10 @@ int SEntry::injectCDKEntry(chtype input)
 	/* Refresh the widget field. */
 	this->zeichneFeld();
 	/* Check if there is a pre-process function to be called. */
-	if (PreProcessFuncOf(this)) {
-		ppReturn = PreProcessFuncOf(this)(vENTRY,
+	if (preProcessFunction) {
+		ppReturn = (preProcessFunction)(vENTRY,
 				this,
-				PreProcessDataOf(this),
+				(preProcessData),
 				input);
 	}
 	/* Should we continue? */
@@ -2760,8 +2737,8 @@ int SEntry::injectCDKEntry(chtype input)
 		/* Check a predefined binding... */
 		if (checkCDKObjectBind(input)) {
 			//			checkEarlyExit(this);
-			if (earlyExit != vNEVER_ACTIVATED) exitType = earlyExit;
-			EarlyExitOf(this);
+			if (earlyExit != vNEVER_ACTIVATED) 
+				exitType = earlyExit;
 			complete = TRUE;
 		} else {
 //			const int infoLength = (int)strlen(this->efld.c_str());
@@ -2917,8 +2894,7 @@ int SEntry::injectCDKEntry(chtype input)
 					break;
 				case KEY_TAB:
 				case KEY_ENTER:
-					if (infoLength >= (size_t)this->min)
-					{
+					if (infoLength >= (size_t)this->min) {
 						setExitType(input);
 						ret = efld.c_str();
 						complete = TRUE;
@@ -2953,10 +2929,10 @@ int SEntry::injectCDKEntry(chtype input)
 			}
 		}
 		/* Should we do a post-process? */
-		if (!complete && (PostProcessFuncOf(this))) {
-			PostProcessFuncOf(this)(vENTRY,
+		if (!complete && ((postProcessFunction))) {
+			(postProcessFunction)(vENTRY,
 					this,
-					PostProcessDataOf(this),
+					(postProcessData),
 					input);
 		}
 	}
@@ -2976,16 +2952,17 @@ void SEntry::setCDKEntryValue(string newValue)
 	//			if (max>efld.length()) efld.resize(max);
 	this->settoend();
 }
+/*
 void SEntry::setCDKEntryValue(const char *newValue)
 {
-	/* If the pointer sent in is the same pointer as before, do nothing. */
+	// If the pointer sent in is the same pointer as before, do nothing.
 	if (!newValue || this->efld != newValue) {
-		/* Just to be sure, if lets make sure the new value isn't null. */
+		// Just to be sure, if lets make sure the new value isn't null.
 		if (!newValue) {
-			/* Then we want to just erase the old value. */
+			// Then we want to just erase the old value.
 			efld.clear();
 //			efld.resize(infoWidth);
-			/* Set the pointers back to zero. */
+			// Set the pointers back to zero.
 			this->leftChar = 0;
       this->lbuch=0;
 			this->screenCol = 0;
@@ -2995,6 +2972,7 @@ void SEntry::setCDKEntryValue(const char *newValue)
 		}
 	}
 }
+*/
 
 /*
 const char* SEntry::getCDKEntryValue()
@@ -3007,7 +2985,8 @@ const char* SEntry::getCDKEntryValue()
  * This sets specific attributes of the entry field.
  */
 void SEntry::setCDKEntry(
-		const char *value,
+//		const char *value,
+		string& value,
 		int pmin,
 		int pmax,
 		bool Box GCC_UNUSED)
@@ -3074,7 +3053,21 @@ void SEntry::eraseCDKEntry()
 /*
  * This erases the file selector from the screen.
  */
-void SAlphalist::eraseCDKAlphalist/*_eraseCDKAlphalist*/()
+void ComboB::eraseObj() // eraseCDKFselect(/*CDKOBJS *object*/)
+{
+	//   if (validCDKObject(object)) {
+	//      SFSelect *fselect =(SFSelect *)object;
+	scrollField->eraseCDKScroll(/*fselect->scrollField*/);
+	entryField->eraseCDKEntry(/*fselect->entryField*/);
+	eraseCursesWindow(shadowWin);
+	eraseCursesWindow(/*fselect->*/win);
+	//   }
+}
+/*
+ * This erases the file selector from the screen.
+ */
+/*
+void SAlphalist::eraseCDKAlphalist() // _eraseCDKAlphalist
 {
 	//   if (validCDKObject(object))
 	{
@@ -3082,10 +3075,10 @@ void SAlphalist::eraseCDKAlphalist/*_eraseCDKAlphalist*/()
 		scrollField->eraseCDKScroll();
 		//      eraseCDKEntry(entryField);
 		entryField->eraseCDKEntry();
-		eraseCursesWindow(shadowWin);
 		eraseCursesWindow(win);
 	}
 }
+*/
 
 /*
  * This function erases the scrolling list from the screen.
@@ -3227,14 +3220,7 @@ void CDKOBJS::saveDataCDK()
 #define RestoreFocus(widget) \
 	widget->scrollField->hasFocus=save
 
-void SAlphalist::injectMyScroller(chtype key)
-{
-	SaveFocus(this);
-	scrollField->injectCDKScroll(key);
-	RestoreFocus(this);
-}
-
-void SFSelect::injectMyScroller(chtype key)
+void ComboB::injectMyScroller(chtype key)
 {
 	SaveFocus(this);
 	scrollField->injectCDKScroll(key);
@@ -3287,10 +3273,16 @@ int SFSelect::injectCDKFselect(/*CDKOBJS *object, */chtype input)
 	if (chdir(this->pwd.c_str())) {
 		return 0;
 	}
+	// damit auch Verzeichnisse ausgewählt werden können
+	if (pfadname==filename) {
+		complete = TRUE;
+	} else {
+		this->pfadname=filename;
+	}
 	/* If it's not a directory, return the filename. */
 	if (file) {
 		/* It's a regular file, create the full path. */
-		this->pfadname=filename;
+		// this->pfadname=filename;
 		/* Return the complete pathname. */
 		complete = TRUE;
 	} else {
@@ -3308,8 +3300,9 @@ int SFSelect::injectCDKFselect(/*CDKOBJS *object, */chtype input)
 		/* Redraw the scrolling list. */
 		drawMyScroller(/*this*/);
 	}
-	if (!complete)
+	if (!complete) {
 		setExitType(/*this, */0);
+	}
   resultData.valueString=pfadname.c_str();
 	return !pfadname.empty();
 }
@@ -3367,7 +3360,7 @@ void SScroll::setCDKScrollItems(vector<string> *plistp, bool numbers)
       return;
    /* Clean up the display. */
    for (int x = 0; x < this->viewSize; x++) {
-      writeBlanks(this->win, 1, SCREEN_YPOS(this, x),
+      writeBlanks(this->win, 1, x+borderSize+titleLines, // SCREEN_YPOS(this, x),
 		   HORIZONTAL, 0, this->boxWidth - 2);
    }
    setViewSize(listSize);
@@ -3401,12 +3394,12 @@ void SAlphalist::setCDKAlphalistContents(vector<string> *plistp)
 {
 	 plist=*plistp;
    /* Set the information in the scrolling list. */
-   scrollField->setCDKScroll(plistp, NONUMBERS, scrollField->highlight, ObjOf(scrollField)->obbox);
+   scrollField->setCDKScroll(plistp, NONUMBERS, scrollField->highlight, scrollField->obbox);
    /* Clean out the entry field. */
    setCDKAlphalistCurrentItem(0);
    entryField->cleanCDKEntry();
    /* Redraw the this. */
-   this->eraseCDKAlphalist();
+   this->eraseObj(); // eraseCDKAlphalist();
    this->drawCDKAlphalist(obbox);
 }
 
@@ -3579,22 +3572,15 @@ static int adjustAlphalistCB(EObjectType objectType GCC_UNUSED, void
 /*
  * This tries to complete the word in the entry field.
  */
-static int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UNUSED, void *clientData, chtype key GCC_UNUSED)
+int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UNUSED, void *clientData, chtype key GCC_UNUSED)
 {
    /* *INDENT-EQLS* */
    SAlphalist *alphalist = (SAlphalist *)clientData;
    SEntry *entry         = (SEntry *)alphalist->entryField;
    SScroll *scrollp      = 0;
-   int wordLength          = 0;
-   int Index               = 0;
-   int ret                 = 0;
 	 vector<string> altWords;
-	 if (0) {
-      Beep();
-      return TRUE;
-   }
 //   wordLength = (int)strlen(entry->efld.c_str());
-	 wordLength=entry->efld.length();
+	 size_t wordLength{entry->efld.length()};
 
    /* If the word length is equal to zero, just leave. */
    if (!wordLength) {
@@ -3603,10 +3589,7 @@ static int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UN
    }
 
    /* Look for a unique word match. */
-   Index = searchList(
-		&alphalist->plist,
-			 entry->efld.c_str()
-			 );
+   int Index = searchList(&alphalist->plist, entry->efld.c_str());
 
    /* If the index is less than zero, return we didn't find a match. */
    if (Index < 0) {
@@ -3622,23 +3605,17 @@ static int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UN
    }
 
    /* Ok, we found a match, is the next item similar? */
-   ret = strncmp(alphalist->plist[Index + 1].c_str(), 
-			 entry->efld.c_str(),(size_t) wordLength);
+   int ret = strncmp(alphalist->plist[Index + 1].c_str(), entry->efld.c_str(),(size_t) wordLength);
 	 if (!ret) {
 		 int currentIndex = Index;
-		 int altCount = 0;
-		 int selected;
-		 int height;
-		 int match;
-		 int x;
 
-		 while ((currentIndex<(int)alphalist->plist.size()) && (!strncmp(alphalist->plist[currentIndex].c_str(),
-						 entry->efld.c_str(),(size_t)wordLength))) {
+		 while ((currentIndex<(int)alphalist->plist.size()) && (!strncmp(alphalist->plist[currentIndex].c_str(), entry->efld.c_str(),(size_t)wordLength))) {
 			 altWords.push_back(alphalist->plist[currentIndex++]);
 		 }
 
 		 /* Determine the height of the scrolling list. */
-		 height = (altCount < 8 ? altCount + 3 : 11);
+		 int altCount=altWords.size();
+		 int height = (altCount < 8 ? altCount + 3 : 11);
 
 		 /* Create a scrolling list of close matches. */
 		 scrollp = new SScroll(entry->/*obj.*/screen,
@@ -3648,38 +3625,32 @@ static int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UN
 				 NUMBERS, A_REVERSE, 0, TRUE, FALSE);
 
 		 /* Allow them to select a close match. */
-		 match = scrollp->activateCDKScroll(0);
-		 selected = scrollp->currentItem;
+		 /*int match = */scrollp->activateCDKScroll(0);
+		 int selected = scrollp->currentItem;
 
 		 /* Check how they exited the list. */
 		 if (scrollp->exitType == vESCAPE_HIT) {
 			 /* Destroy the scrolling list. */
 			// scrollp->destroyCDKScroll();
 			 scrollp->destroyObj();
-
 			 /* Clean up. */
-
 			 /* Beep at the user. */
 			 Beep();
-
 			 /* Redraw the alphalist and return. */
 			 alphalist->drawCDKAlphalist(alphalist->obbox);
 			 return (TRUE);
 		 }
-
 		 /* Destroy the scrolling list. */
 //		 destroyCDKScroll(scrollp);
 		 scrollp->destroyObj();
-
 		 /* Set the entry field to the selected value. */
 		 entry->setCDKEntry(
-				 altWords[match].c_str(),
+				 alphalist->plist[Index+selected], // .c_str()
 				 entry->min,
 				 entry->max,
 				 alphalist->obbox);
-
 		 /* Move the highlight bar down to the selected value. */
-		 for (x = 0; x < selected; x++) {
+		 for (int x = 0; x < selected; x++) {
 			 alphalist->injectMyScroller(KEY_DOWN);
 		 }
 
@@ -3690,10 +3661,10 @@ static int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UN
 	 } else {
 		 /* Set the entry field with the found item. */
 		 entry->setCDKEntry(
-				 alphalist->plist[Index].c_str(),
+				 alphalist->plist[Index], // .c_str()
 				 entry->min,
 				 entry->max,
-				 ObjOf(entry)->obbox);
+				 entry->obbox);
 		 entry->drawObj(alphalist->obbox);
 	 }
 	 return (TRUE);
@@ -3959,7 +3930,8 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 			adjustAlphalistCB,
 			this);
 	entryField->bindCDKObject(
-			KEY_TAB,
+//			KEY_TAB,
+			KEY_F3,
 			completeWordCB,
 			this);
 
@@ -3997,11 +3969,17 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 //	return (this);
 }
 
-void SAlphalist::drawMyScroller(/*SAlphalist *widget*/)
+/*
+ * The fselect's focus resides in the entry widget.  But the scroll widget
+ * will not draw items highlighted unless it has focus.  Temporarily adjust the
+ * focus of the scroll widget when drawing on it to get the right highlighting.
+ */
+
+void ComboB::drawMyScroller(/*SFSelect *widget*/)
 {
    SaveFocus(this);
 	// mit 1 entstehen hier Fehler nicht unten, nur oben
-   scrollField->drawCDKScroll(obbox,1);
+   scrollField->drawCDKScroll(/*widget->scrollField, ObjOf(widget->scrollField)->*/scrollField->obbox);
    RestoreFocus(this);
 }
 
@@ -4119,8 +4097,8 @@ void SScroll_basis::scroll_KEY_END()
 void SScroll_basis::scroll_FixCursorPosition()
 {
    int scrollbarAdj =(scrollbarPlacement == LEFT) ? 1 : 0;
-   int ypos = SCREEN_YPOS(this,currentItem - currentTop);
-   int xpos = SCREEN_XPOS(this,0) + scrollbarAdj;
+   int ypos = currentItem-currentTop+borderSize+titleLines; // SCREEN_YPOS(this,currentItem - currentTop);
+   int xpos = borderSize+scrollbarAdj; // SCREEN_XPOS(this,0) + scrollbarAdj;
    wmove(inputWindow, ypos, xpos);
    wrefresh(inputWindow);
 }
@@ -4274,14 +4252,14 @@ SScroll::SScroll(SScreen *cdkscreen,
    if (splace == RIGHT) {
       scrollbarWin = subwin(win,
 				      MaxViewSize(), 1,
-				      SCREEN_YPOS(this, ypos),
+				      ypos+borderSize+titleLines, // SCREEN_YPOS(this, ypos),
 				      xpos + boxWidth
 				      - borderSize - 1);
    } else if (splace == LEFT) {
       scrollbarWin = subwin(win,
 				      MaxViewSize(), 1,
-				      SCREEN_YPOS(this, ypos),
-				      SCREEN_XPOS(this, xpos));
+				      ypos+borderSize+titleLines,// SCREEN_YPOS(this, ypos),
+				      xpos+borderSize); // SCREEN_XPOS(this, xpos));
    } else {
       scrollbarWin = 0;
    }
@@ -4292,8 +4270,8 @@ SScroll::SScroll(SScreen *cdkscreen,
 			      MaxViewSize(),
 			      boxWidth
 			      - 2 * borderSize - scrollAdjust,
-			      SCREEN_YPOS(this, ypos),
-			      SCREEN_XPOS(this, xpos)
+			      ypos+borderSize+titleLines, // SCREEN_YPOS(this, ypos),
+			      xpos+borderSize // SCREEN_XPOS(this, xpos)
 			      +(splace == LEFT ? 1 : 0));
 
    /* *INDENT-EQLS* Set the rest of the variables */
@@ -4342,12 +4320,12 @@ int SScroll::activateCDKScroll(chtype *actions)
 {
 	/* Draw the scrolling list */
 	// hier entstehen keine Fehler
+	int ret;
 	this->drawCDKScroll(obbox,1);
 	if (!actions) {
 		chtype input;
 		bool functionKey;
 		for (;;) {
-			int ret;
 			scroll_FixCursorPosition();
 			input = (chtype)this->getchCDKObject(&functionKey);
 			/* Inject the character into the widget. */
@@ -4360,7 +4338,7 @@ int SScroll::activateCDKScroll(chtype *actions)
 		int length = chlen(actions);
 		/* Inject each character one at a time. */
 		for (int i = 0; i < length; i++) {
-			int ret = injectCDKScroll(actions[i]);
+			ret = injectCDKScroll(actions[i]);
 			if (this->exitType != vEARLY_EXIT)
 				return ret;
 		}
@@ -4391,8 +4369,8 @@ void SScroll::drawCDKScrollCurrent()
 		      this->itemLen[this->currentItem]);
 }
 
-#undef  SCREEN_YPOS		/* because listWin is separate */
-#define SCREEN_YPOS(w,n)(n)
+// #undef  SCREEN_YPOS		/* because listWin is separate */
+// #define SCREEN_YPOS(w,n)(n)
 
 /*
  * This redraws the scrolling list.
@@ -4409,13 +4387,13 @@ void SScroll::drawCDKScrollList(bool Box)
 			reihe=reihe;
 		}
 		for (int j = 0; j < this->viewSize; j++) {
-			int xpos = SCREEN_YPOS(this, 0);
-			int ypos = SCREEN_YPOS(this, j);
+			int xpos = 0; // SCREEN_YPOS(this, 0);
+			int ypos = j; // SCREEN_YPOS(this, j);
 			writeBlanks(this->listWin, xpos, ypos, HORIZONTAL, 0, this->boxWidth - 2 * borderSize);
 			int k = j + this->currentTop;
 			/* Draw the elements in the scroll list. */
 			if (k < this->listSize) {
-				int screenPos = SCREENPOS(this, k);
+				int screenPos = itemPos[k]-leftChar; //  SCREENPOS(this, k);
 				/* Write in the correct line. */
 				// zeichnet alle, ohne das Aktuelle zu markieren
 				mvwprintw(parent,anzy++,90,"%i: cury: %i %s",reihe,listWin->_cury,pitem[k].chtype2Char());
@@ -4465,7 +4443,7 @@ int SScroll::injectCDKScroll(/*CDKOBJS *object, */chtype input)
 	//   SScroll *myself =(SScroll *)object;
 //	CDKSCROLLER *widget =(CDKSCROLLER *)this;
 	int ppReturn = 1;
-	int ret = unknownInt;
+	int ret = -1; // unknownInt;
 	bool complete = FALSE;
 
 	/* Set the exit type for the widget. */
@@ -4475,11 +4453,11 @@ int SScroll::injectCDKScroll(/*CDKOBJS *object, */chtype input)
 	drawCDKScrollList(obbox);
 
 	/* Check if there is a pre-process function to be called. */
-	if (PreProcessFuncOf(this)) {
+	if ((preProcessFunction)) {
 		/* Call the pre-process function. */
-		ppReturn = PreProcessFuncOf(this)(vSCROLL,
+		ppReturn = (preProcessFunction)(vSCROLL,
 				this,
-				PreProcessDataOf(this),
+				(preProcessData),
 				input);
 	}
 
@@ -4559,11 +4537,10 @@ int SScroll::injectCDKScroll(/*CDKOBJS *object, */chtype input)
 			}
 		}
 		/* Should we call a post-process? */
-		if (!complete && (PostProcessFuncOf(this/*widget*/)))
-		{
-			PostProcessFuncOf (this/*widget*/)(vSCROLL,
+		if (!complete && (postProcessFunction)) {
+			(postProcessFunction)(vSCROLL,
 					this/*widget*/,
-					PostProcessDataOf(this/*widget*/),
+					(postProcessData),
 					input);
 		}
 	}
@@ -4573,7 +4550,7 @@ int SScroll::injectCDKScroll(/*CDKOBJS *object, */chtype input)
 	}
 	scroll_FixCursorPosition();
 	resultData.valueInt = ret;
-	return (ret != unknownInt);
+	return (ret != -1) // unknownInt);
 } // static int _injectCDKScroll
 
 /*
@@ -4629,16 +4606,14 @@ void SScroll_basis::updateViewWidth(int widest)
 	maxLeftChar=boxWidth>widest?0:widest-(boxWidth-2*borderSize);
 }
 
-bool SScroll::allocListItem(
-			      int which,
-			      int number,
-			      const char *value)
+bool SScroll::allocListItem(int which, int number, const char *value)
 {
+	string valuestr;
 	if (number > 0) {
-		size_t need = NUMBER_LEN(value);
-	  string valuestr;
+		size_t need = strlen(value)+8; // NUMBER_LEN(value);
 		valuestr.resize(need);
 		sprintf(&valuestr[0],NUMBER_FMT,number,value);
+		valuestr.resize(strlen(valuestr.c_str())+1);
 		value=valuestr.c_str();
 	}
 //	if (!(this->sitem[which] = char2Chtypeh(value, &(this->itemLen[which]), &(this->itemPos[which])))) return FALSE;
@@ -4926,25 +4901,20 @@ void SLabel::setCDKLabel(//SLabel *label,
 /*
  * This sets the information within the label.
  */
-void SLabel::setCDKLabelMessage(/*SLabel *label, */
-			 std::vector<std::string> s_info
-		)
+void SLabel::setCDKLabelMessage(/*SLabel *label, */ std::vector<std::string> s_info)
 {
-   int x;
-   int limit;
-
    /* Clean out the old message. */
 	 pinfo.clear();
 	 infoPos.clear();
 	 infoLen.clear();
 
    /* update the label's length - but taking into account its window size */
-   limit = /*label->*/boxHeight -(2 * /*BorderOf(label)*/ borderSize);
+   int limit{/*label->*/boxHeight -(2 * /*BorderOf(label)*/ borderSize)};
 	 rows=s_info.size();
 	 if (rows>limit) rows=limit;
 
    /* Copy in the new message. */
-   for (x = 0; x < /*label->*/rows; x++) {
+   for (int x = 0; x < /*label->*/rows; x++) {
 //      /*label->*/info[x] = char2Chtypeh(s_info[x], &/*label->*/infoLen[x], &/*label->*/infoPos[x]);
 		 int len,pos;
 		 chtstr infoneu(s_info[x].c_str(),&len,&pos);
@@ -5040,7 +5010,7 @@ void SLabel::moveCDKLabel(/*CDKOBJS *object,*/
    }
 
    /* Adjust the window if we need to. */
-   alignxy(WindowOf(this), &xpos, &ypos, /*label->*/boxWidth, /*label->*/boxHeight);
+   alignxy(screen->window, &xpos, &ypos, /*label->*/boxWidth, /*label->*/boxHeight);
 
    /* Get the difference. */
    xdiff = currentX - xpos;
@@ -5051,7 +5021,7 @@ void SLabel::moveCDKLabel(/*CDKOBJS *object,*/
    moveCursesWindow(/*label->*/shadowWin, -xdiff, -ydiff);
 
    /* Touch the windows so they 'move'. */
-   refreshCDKWindow(WindowOf(this));
+   refreshCDKWindow(screen->window);
 
    /* Redraw the window, if they asked for it. */
    if (refresh_flag) {
@@ -5256,35 +5226,22 @@ void SFSelect::drawCDKFselect(/*CDKOBJS *object, */bool Box GCC_UNUSED, bool obm
 }
 
 /*
- * The fselect's focus resides in the entry widget.  But the scroll widget
- * will not draw items highlighted unless it has focus.  Temporarily adjust the
- * focus of the scroll widget when drawing on it to get the right highlighting.
- */
-
-void SFSelect::drawMyScroller(/*SFSelect *widget*/)
-{
-   SaveFocus(this);
-   scrollField->drawCDKScroll(/*widget->scrollField, ObjOf(widget->scrollField)->*/scrollField->obbox);
-   RestoreFocus(this);
-}
-
-/*
  * Store the name of the current working directory.
  */
 void SFSelect::setPWD(/*SFSelect *fselect*/)
 {
-   char buffer[512];
+   char buffer[PATH_MAX];
    if (!getcwd(buffer, sizeof(buffer)))
       strcpy(buffer, ".");
 	 this->pwd=buffer;
+// #include <filesystem>
+//	 this->pwd=std::filesystem::current_path();
 }
 
 /*
  * This opens the current directory and reads the contents.
  */
-int CDKgetDirectoryContents(const char *directory, 
-		vector<string> *plist
-		)
+int CDKgetDirectoryContents(const char *directory, vector<string> *plist)
 {
 	/* Declare local variables.  */
 	struct dirent *dirStruct;
@@ -5352,9 +5309,7 @@ int SFSelect::setCDKFselectdirContents(/*CDKFSELECT *fselect*/)
 	vector<string> dirList;
 	int fileCount;
 	/* Get the directory contents. */
-	fileCount = CDKgetDirectoryContents(this->pwd
-			.c_str()
-			, &dirList);
+	fileCount = CDKgetDirectoryContents(this->pwd.c_str(), &dirList);
 	if (fileCount <= 0) {
 		return 0;
 	}
@@ -5411,15 +5366,11 @@ int SFSelect::setCDKFselectdirContents(/*CDKFSELECT *fselect*/)
 	}
 	return 1;
 }
-string make_pathname(const string& dir,const char* file)
+
+string make_pathname(const string& dir,const string& file)
 {
 	if (dir=="/") return dir+file;
 	else return dir+"/"+file;
-}
-string make_pathname(const char *dir,const string& file)
-{
-	if (!strcmp(dir, "/")) return dir+file;
-	else return dir+("/"+file);
 }
 
 /*
@@ -5493,15 +5444,12 @@ static const char *expandTilde(const char *filename)
 		)
 	{
 		bool slash = FALSE;
-		const char *home;
-		int x;
 		int len_a = 0;
 		int len_p = 0;
 		struct passwd *accountInfo;
 
 		/* Find the account name in the filename. */
-		for (x = 1; x < len; x++)
-		{
+		for (int x = 1; x < len; x++) {
 			if (filename[x] == '/' && !slash) {
 				slash = TRUE;
 			} else if (slash) {
@@ -5513,16 +5461,18 @@ static const char *expandTilde(const char *filename)
 		account.resize(len_a);
 		pathname.resize(len_p);
 
-		home = 0;
+		//const char *home = 0;
+		string home;
 #ifdef HAVE_PWD_H
-		if (!account.empty() && (accountInfo=getpwnam(account.c_str())))
-		{
+		if (!account.empty() && (accountInfo=getpwnam(account.c_str()))) {
 			home = accountInfo->pw_dir;
 		}
 #endif
-		if (home == 0 || *home == '\0')
+//		if (home == 0 || *home == '\0')
+		if (home.empty())
 			home = getenv("HOME");
-		if (home == 0 || *home == '\0')
+//		if (home == 0 || *home == '\0')
+		if (home.empty())
 			home = "/";
 
 		/*
@@ -5584,22 +5534,6 @@ string format1Date(const char* format, time_t value)
 	return ziel;
 }
 
-
-
-
-/*
- * This erases the file selector from the screen.
- */
-void SFSelect::eraseCDKFselect(/*CDKOBJS *object*/)
-{
-	//   if (validCDKObject(object)) {
-	//      SFSelect *fselect =(SFSelect *)object;
-	scrollField->eraseCDKScroll(/*fselect->scrollField*/);
-	entryField->eraseCDKEntry(/*fselect->entryField*/);
-	eraseCursesWindow(/*fselect->*/win);
-	//   }
-}
-
 /*
  * This function sets the information inside the file selector.
  */
@@ -5629,37 +5563,30 @@ void SFSelect::setCDKFselect(/*SFSelect *fselect,*/
 	/* Only do the directory stuff if the directory is not null. */
 	if (directory) {
 		string newDirectory;
-
 		/* Try to expand the directory if it starts with a ~ */
 		if ((tempDir = expandTilde(directory))) {
 			newDirectory = tempDir;
 		} else {
 			newDirectory=directory;
 		}
-
 		/* Change directories. */
 		if (chdir(newDirectory.c_str())) {
 			vector<string> mesg(4);
 			Beep();
-
 			/* Could not get into the directory, pop up a little message. */
 			mesg[0] = format1String("<C>Could not change into %s", newDirectory.c_str());
 			mesg[1] = errorMessage("<C></U>%s");
 			mesg[2]=" ";
 			mesg[3]="<C>Press Any Key To Continue.";
-
 			/* Pop Up a message. */
 			screen->popupLabel(/*ScreenOf(this), */ mesg);
-
 			/* Clean up some memory. */
-
 			/* Get out of here. */
-			eraseCDKFselect(/*this*/);
+			eraseObj(); // eraseCDKFselect(/*this*/);
 			drawCDKFselect(/*this, ObjOf(this)->*/obbox);
 			return;
 		}
 	}
-
 	/*
 	 * If the information coming in is the same as the information
 	 * that is already there, there is no need to destroy it.
@@ -5677,11 +5604,10 @@ void SFSelect::setCDKFselect(/*SFSelect *fselect,*/
 	entryField->drawCDKEntry(/*entryField, ObjOf(entryField)->*/obbox);
 
 	/* Get the directory contents. */
-	if (setCDKFselectdirContents(/*this*/) == 0) {
+	if (!setCDKFselectdirContents(/*this*/)) {
 		Beep();
 		return;
 	}
-
 	/* Set the values in the scrolling list. */
 	scrollField->setCDKScrollItems(/*scrollField,*/ &dirContents, FALSE);
 }
@@ -5700,9 +5626,7 @@ const char *SFSelect::contentToPath(/*SFSelect *fselect, */const char *content)
    trim1Char(tempChar);	/* trim the 'mode' stored on the end */
 
    /* Create the pathname. */
-   const char *result = make_pathname(this->pwd,tempChar)
-			 .c_str()
-			 ;
+   const char *result = make_pathname(this->pwd,tempChar).c_str();
 
    /* Clean up. */
 //   freeChtype(tempChtype);
@@ -5748,26 +5672,15 @@ static int completeFilenameCB(EObjectType objectType GCC_UNUSED,
 		return FALSE;
 	}
 	fselect->setCDKFselect(/*fselect,*/
-			(isDirectory ? mydirname : filename)
-			.c_str()
-			,
-			fselect->fieldAttribute,
-			fselect->fillerChar,
-			fselect->highlight,
-			fselect->dirAttribute
-			.c_str()
-			,
-			fselect->fileAttribute
-			.c_str()
-			,
-			fselect->linkAttribute
-			.c_str()
-			,
-			fselect->sockAttribute
-			.c_str()
-			,
-			ObjOf(fselect)->obbox);
-
+			(isDirectory ? mydirname : filename).c_str()
+			,fselect->fieldAttribute
+			,fselect->fillerChar
+			,fselect->highlight
+			,fselect->dirAttribute.c_str()
+			,fselect->fileAttribute.c_str()
+			,fselect->linkAttribute.c_str()
+			,fselect->sockAttribute.c_str()
+			,fselect->obbox);
 	/* If we can, change into the directory. */
 	if (isDirectory) {
 		/*
@@ -5902,7 +5815,7 @@ int mode2Char(char *string, mode_t mode)
 	if (filetype == '?')
 		return -1;
 
-	for (n = 0; n < sizeof(table) / sizeof(table[0]); n++) {
+	for (n = 0; n < SIZEOF(table); n++) {
 		if ((mode & table[n].mask)) {
 			string[table[n].col] = table[n].flag;
 			permissions |= (int)table[n].mask;
@@ -5985,19 +5898,11 @@ static int displayFileInfoCB(EObjectType objectType GCC_UNUSED,
 	/* Convert the mode_t type to both string and int. */
 	intMode = mode2Char(stringMode, fileStat.st_mode);
 	/* Create the message. */
-	mesg[0] = format1String("Directory  : </U>%s", fselect->pwd
-			.c_str()
-			);
-	mesg[1] = format1String("Filename   : </U>%s", filename
-	.c_str()
-	 );
+	mesg[0] = format1String("Directory  : </U>%s", fselect->pwd.c_str());
+	mesg[1] = format1String("Filename   : </U>%s", filename.c_str());
 #ifdef HAVE_PWD_H
-	mesg[2] = format1StrVal("Owner      : </U>%s<!U> (%d)",
-			pwEnt->pw_name,
-			(int)fileStat.st_uid);
-	mesg[3] = format1StrVal("Group      : </U>%s<!U> (%d)",
-			grEnt->gr_name,
-			(int)fileStat.st_gid);
+	mesg[2] = format1StrVal("Owner      : </U>%s<!U> (%d)", pwEnt->pw_name, (int)fileStat.st_uid);
+	mesg[3] = format1StrVal("Group      : </U>%s<!U> (%d)", grEnt->gr_name, (int)fileStat.st_gid);
 #else
 	mesg[2] = format1Number("Owner      : (%ld)", (long)fileStat.st_uid);
 	mesg[3] = format1Number("Group      : (%ld)", (long)fileStat.st_gid);
@@ -6378,7 +6283,7 @@ int SDialog::injectCDKDialog(/*CDKOBJS *object, */chtype input)
 	//   CDKDIALOG *widget = (CDKDIALOG *)object;
 	int lastButton    = pbutton.size()/*this->buttonCount*/ - 1;
 	int ppReturn      = 1;
-	int ret           = unknownInt;
+	int ret           = -1; // unknownInt;
 	bool complete     = FALSE;
 
 	/* Set the exit type. */
@@ -6388,14 +6293,14 @@ int SDialog::injectCDKDialog(/*CDKOBJS *object, */chtype input)
 	if ((preProcessFunction)) {
 		ppReturn = (preProcessFunction) (vDIALOG,
 				this,
-				PreProcessDataOf (this),
+				(preProcessData),
 				input);
 	}
 
 	/* Should we continue? */
 	if (ppReturn) {
 		/* Check for a key binding. */
-		if (checkCDKObjectBind(/*vDIALOG, this, */input) != 0) {
+		if (checkCDKObjectBind(/*vDIALOG, this, */input)) {
 			//checkEarlyExit(this);
 			complete = TRUE;
 		} else {
@@ -6445,10 +6350,10 @@ int SDialog::injectCDKDialog(/*CDKOBJS *object, */chtype input)
 			}
 		}
 		/* Should we call a post-process? */
-		if (!complete && (PostProcessFuncOf (this) != 0)) {
-			PostProcessFuncOf (this) (vDIALOG,
+		if (!complete && (postProcessFunction)) {
+			(postProcessFunction)(vDIALOG,
 					this,
-					PostProcessDataOf (this),
+					(postProcessData),
 					input);
 		}
 	}
@@ -6473,12 +6378,10 @@ void SDialog::moveCDKDialog(/*CDKOBJS *object,*/
 {
 //   CDKDIALOG *dialog = (CDKDIALOG *)object;
    /* *INDENT-EQLS* */
-   int currentX = getbegx (this->win);
-   int currentY = getbegy (this->win);
+   int currentX = getbegx(this->win);
+   int currentY = getbegy(this->win);
    int xpos     = xplace;
    int ypos     = yplace;
-   int xdiff    = 0;
-   int ydiff    = 0;
 
    /*
     * If this is a relative move, then we will adjust where we want
@@ -6490,18 +6393,18 @@ void SDialog::moveCDKDialog(/*CDKOBJS *object,*/
    }
 
    /* Adjust the window if we need to. */
-   alignxy (WindowOf(this), &xpos, &ypos, this->boxWidth, this->boxHeight);
+   alignxy (screen->window, &xpos, &ypos, this->boxWidth, this->boxHeight);
 
    /* Get the difference. */
-   xdiff = currentX - xpos;
-   ydiff = currentY - ypos;
+   int xdiff = currentX - xpos;
+   int ydiff = currentY - ypos;
 
    /* Move the window to the new location. */
    moveCursesWindow(this->win, -xdiff, -ydiff);
    moveCursesWindow(this->shadowWin, -xdiff, -ydiff);
 
    /* Touch the windows so they 'move'. */
-   refreshCDKWindow(WindowOf(this));
+   refreshCDKWindow(screen->window);
 
    /* Redraw the window, if they asked for it. */
    if (refresh_flag) {
@@ -6557,10 +6460,10 @@ void SDialog::destroyCDKDialog(/*CDKOBJS *object*/)
  */
 void SDialog::eraseCDKDialog(/*CDKOBJS *object*/)
 {
-//   if (validCDKObject (object)) {
-      eraseCursesWindow(win);
-      eraseCursesWindow(shadowWin);
-//   }
+	//   if (validCDKObject (object)) {
+	eraseCursesWindow(win);
+	eraseCursesWindow(shadowWin);
+	//   }
 }
 
 /*
@@ -6636,7 +6539,7 @@ void SDialog::drawCDKDialogButtons(/*CDKDIALOG *dialog*/)
 
 	/* Draw the separation line. */
 	if (this->separator) {
-		chtype boxattr = BXAttrOf (this);
+		chtype boxattr = BXAttr;
 
 		for (int x = 1; x < this->boxWidth - 1; x++) {
 			(void)mvwaddch(this->win, this->boxHeight - 2 - borderSize, x, ACS_HLINE | boxattr);
@@ -6674,8 +6577,8 @@ CDKOBJS::CDKOBJS(
 			 ,bool pisVisible
 			 ,int objnr/*=-1*/
 			 )
-		 :screen(pscreen),parent(pparent),obbox(obBox),borderSize(obBox?1:0),shadow(pshadow),cdktype(pcdktype),acceptsFocus(pacceptsFocus),hasFocus(phasFocus)
-     ,isVisible(pisVisible)
+		 :screen(pscreen),parent(pparent),obbox(obBox),borderSize(obBox?1:0),shadow(pshadow),cdktype(pcdktype),
+			acceptsFocus(pacceptsFocus),hasFocus(phasFocus),isVisible(pisVisible)
 	 /* set default line-drawing characters */
 	 ,ULChar(ACS_ULCORNER)
 	 ,URChar(ACS_URCORNER)
@@ -6688,10 +6591,11 @@ CDKOBJS::CDKOBJS(
 	 ,exitType(vNEVER_ACTIVATED)
 	 ,earlyExit(vNEVER_ACTIVATED)
 	 ,parentWidth(parent?parent->_maxx:ERR)
-	 ,parentHeight(parent?parent->_maxy:ERR)
-	{
-	 all_objects.push_back(this);
-	}
+   ,parentHeight(parent?parent->_maxy:ERR)
+{
+	all_objects.push_back(this);
+}
+
 //dummyRefreshData (Dialog)
 //dummySaveData (Dialog)
 SScroll_basis::SScroll_basis(

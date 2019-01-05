@@ -3,9 +3,11 @@ CCNAME=$(CC)
 DPROG::=efld
 KR::=/dev/null 2>&1
 KF::= 2>/dev/null
-CFLAGS::=-c -Wall
+CFLAGS::=-c -Wall 
+# -std=gnu++1z
 CFLAGS::=$(CFLAGS) -g -I. -I$$HOME/cdk/include -I/usr/include/ncursesw 
 LDFLAGS::=-lncursesw
+# -lstdc++fs
 EXEC::=$(DPROG)
 ICH::=$(firstword $(MAKEFILE_LIST))
 SRCS::=$(wildcard *.cpp)

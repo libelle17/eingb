@@ -49,12 +49,12 @@ __attribute__((__unused__)) static int rfende(EObjectType cdktype GCC_UNUSED,
 			"Sie haben RETURN gedrückt.",
 			"Sind Sie </B/32>fertig?<!B!32>",
 		};
-		vector<string> msgv{msg,msg+sizeof msg/sizeof *msg};
+		vector<string> msgv{msg,msg+SIZEOF(msg)};
 		const char *const buttonsstr[] {
 			"</B16>Nein",
 				"</B/24>Ja", 
 		};
-		vector<string> buttons{buttonsstr,buttonsstr+sizeof(buttonsstr)/sizeof(*buttonsstr)};
+		vector<string> buttons{buttonsstr,buttonsstr+SIZEOF(buttonsstr)};
 
 		/* Create the dialog box. */
 		SDialog *question = new SDialog(((CDKOBJS*)object)->screen,
@@ -138,6 +138,7 @@ struct hotkst {
 	{"</R/U/6>Directory:<!R!6!U> ",4,auswfld},
 	//		 */
 	// /*
+	{"</R/U/6>Betalist:<!R!6>",2,dteifld},
 	{"</R/U/6>Däteis:<!R!6!U> ",2,auswfld},
 	{"</R/U/6>Datei:<!R!6>",3,auswfld},
 	{"</R/U/6>Döüßatei:<!R!6>",4,auswfld},
@@ -156,10 +157,9 @@ struct hotkst {
 	{"</R/U/6>Betalist:<!R!6>",3},
 	{"</R/U/6>Dürectory:<!R!6>",3},
 	{"</R/U/4>Dürectory:<!R!4>",3},
-	{"</R/U/6>Betalist:<!R!6>",2,dteifld},
 	// */
 };
-const int maxhk=sizeof hk/sizeof *hk;
+const int maxhk=SIZEOF(hk);
 const int yabst=7;
 const int xpos=11;
 
@@ -234,8 +234,7 @@ int main(int argc, char **argv)
 				break;
 			case dteifld:
 				hk[aktent].eingabef=
-					//newCDKEntry(cdkscreen,xpos,yabst+aktent,"",hk[aktent].label,A_NORMAL,'.',vMIXED,30,0,maxlen,0,0,hk[aktent].highinr);
-					new SFSelect(cdkscreen,xpos,yabst+aktent,20,65,"",hk[aktent].label,A_NORMAL,'.',A_REVERSE,"</5>","</48>","</N>","</N>",TRUE,FALSE,hk[aktent].highinr,aktent);
+					new SFSelect(cdkscreen,xpos,yabst+aktent,20,65,"",hk[aktent].label,A_NORMAL,'.',A_REVERSE,"</5>","</48>","</N>","</N>",/*Box*/0,FALSE,hk[aktent].highinr,aktent);
 				break;
 		}
 //		hk[aktent].eingabef->bindCDKObject(/*vENTRY, hk[aktent].eingabef, */KEY_RETURN, rfende, 0);
@@ -260,7 +259,7 @@ int main(int argc, char **argv)
 	/* Activate the entry field. */
 	int Zweitzeichen=0,Drittzeichen=0;
 	while (1) {
-		akteinbart=einb_direkt;
+//		akteinbart=einb_direkt;
 		/* Draw the screen. */
 		// refreshCDKScreen(cdkscreen);
 		//zeichne(cdkscreen,Znr);
@@ -308,7 +307,7 @@ int main(int argc, char **argv)
 		// mvwprintw(cdkscreen->window,30,60,"<R>werde eingegeben:%i %i ",info,Zweitzeichen);
 		switch (hk[Znr].obalph) {
 			case auswfld:
-				akteinbart=einb_alphalist;
+//				akteinbart=einb_alphalist;
 				/*info=*/((SAlphalist*)hk[Znr].eingabef)->activateCDKAlphalist(/*(SAlphalist*)hk[Znr].eingabef, */0,&Zweitzeichen, &Drittzeichen,/*obpfeil*/0);
 				(((SAlphalist*)hk[Znr].eingabef)->scrollField)->eraseCDKScroll(/*((SAlphalist*)hk[Znr].eingabef)->scrollField*/);
 				break;

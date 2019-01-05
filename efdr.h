@@ -68,62 +68,58 @@ extern void _nc_free_and_exit(int) GCC_NORETURN;
 #endif /* CDK_TEST_H */
 #endif /* CDKINCLUDES */
 // GSchade 17.11.18
-enum einbauart {
-	einb_direkt,
-	einb_alphalist,
-	einb_sonst
-};
-extern einbauart akteinbart;
+// enum einbauart { einb_direkt, einb_alphalist, einb_sonst };
+//extern einbauart akteinbart;
 struct CDKOBJS; // CDKOBJS
 extern std::vector<CDKOBJS*> all_objects;
 
 #include <string.h> // strlen
 #include <stdlib.h> // malloc
 
-#define CDK_CONST /*nothing*/
-#define CDK_CSTRING CDK_CONST char *
-#define CDK_CSTRING2 CDK_CONST char * CDK_CONST *
-#define CDK_PATCHDATE 20180306
-#define CDK_VERSION "5.0"
-#define HAVE_DIRENT_H 1
-#define HAVE_GETBEGX 1
-#define HAVE_GETBEGY 1
-#define HAVE_GETCWD 1
-#define HAVE_GETLOGIN 1
-#define HAVE_GETMAXX 1
-#define HAVE_GETMAXY 1
-#define HAVE_GETOPT_H 1
-#define HAVE_GETOPT_HEADER 1
-#define HAVE_GRP_H 1
-#define HAVE_INTTYPES_H 1
-#define HAVE_LIMITS_H 1
-#define HAVE_LSTAT 1
-#define HAVE_MEMORY_H 1
-#define HAVE_MKTIME 1
+// #define CDK_CONST /*nothing*/
+// #define CDK_CSTRING CDK_CONST char *
+// #define CDK_CSTRING2 CDK_CONST char * CDK_CONST *
+// #define CDK_PATCHDATE 20180306
+// #define CDK_VERSION "5.0"
+// #define HAVE_DIRENT_H 1
+// #define HAVE_GETBEGX 1
+// #define HAVE_GETBEGY 1
+// #define HAVE_GETCWD 1
+// #define HAVE_GETLOGIN 1
+// #define HAVE_GETMAXX 1
+// #define HAVE_GETMAXY 1
+// #define HAVE_GETOPT_H 1
+// #define HAVE_GETOPT_HEADER 1
+// #define HAVE_GRP_H 1
+// #define HAVE_INTTYPES_H 1
+// #define HAVE_LIMITS_H 1
+// #define HAVE_LSTAT 1
+// #define HAVE_MEMORY_H 1
+// #define HAVE_MKTIME 1
 #define HAVE_NCURSES_H 1
 #define HAVE_PWD_H 1
 #define HAVE_SETLOCALE 1
-#define HAVE_SLEEP 1
+// #define HAVE_SLEEP 1
 #define HAVE_START_COLOR 1
-#define HAVE_STDINT_H 1
-#define HAVE_STDLIB_H 1
-#define HAVE_STRDUP 1
+// #define HAVE_STDINT_H 1
+// #define HAVE_STDLIB_H 1
+// #define HAVE_STRDUP 1
 #define HAVE_STRERROR 1
-#define HAVE_STRINGS_H 1
-#define HAVE_STRING_H 1
-#define HAVE_SYS_STAT_H 1
-#define HAVE_SYS_TYPES_H 1
-#define HAVE_TERM_H 1
-#define HAVE_TYPE_CHTYPE 1
-#define HAVE_UNCTRL_H 1
-#define HAVE_UNISTD_H 1
-#define MIXEDCASE_FILENAMES 1
-#define NCURSES 1
-#define PACKAGE "cdk"
-#define STDC_HEADERS 1
-#define SYSTEM_NAME "linux-gnu"
-#define TYPE_CHTYPE_IS_SCALAR 1
-#define setbegyx(win,y,x)((win)->_begy =(y),(win)->_begx =(x), OK)
+// #define HAVE_STRINGS_H 1
+// #define HAVE_STRING_H 1
+// #define HAVE_SYS_STAT_H 1
+// #define HAVE_SYS_TYPES_H 1
+// #define HAVE_TERM_H 1
+// #define HAVE_TYPE_CHTYPE 1
+// #define HAVE_UNCTRL_H 1
+// #define HAVE_UNISTD_H 1
+// #define MIXEDCASE_FILENAMES 1
+// #define NCURSES 1
+// #define PACKAGE "cdk"
+// #define STDC_HEADERS 1
+// #define SYSTEM_NAME "linux-gnu"
+// #define TYPE_CHTYPE_IS_SCALAR 1
+// #define setbegyx(win,y,x)((win)->_begy =(y),(win)->_begx =(x), OK)
 
 // #define freeChecked(p)          if ((p) != 0) free(p)
 // #define freeAndNull(p)          if ((p) != 0) { free(p); p = 0; }
@@ -149,10 +145,10 @@ extern std::vector<CDKOBJS*> all_objects;
 
 #define	MAXIMUM(a,b)	((a) >(b) ?(a) :(b))
 #define	MINIMUM(a,b)	((a) <(b) ?(a) :(b))
-#define	HALF(a)		((a) >> 1)
+// #define	HALF(a)		((a) >> 1)
 
-#define NUMBER_FMT      "%4d. %s"
-#define NUMBER_LEN(s)  (8 + strlen(s))
+// #define NUMBER_FMT      "%4d. %s"
+// #define NUMBER_LEN(s)  (8 + strlen(s))
 
 #ifndef COLOR_PAIR
 #define	COLOR_PAIR(a)	A_NORMAL
@@ -229,14 +225,14 @@ extern std::vector<CDKOBJS*> all_objects;
 
 
 //#define ObjOf(ptr)              (&(ptr)->obj)
-#define ObjOf(ptr)              (ptr)
+//#define ObjOf(ptr)              (ptr)
 //#define MethodOf(ptr)           (ObjOf(ptr)->fn)
-#define ScreenOf(ptr)           (ObjOf(ptr)->screen)
-#define WindowOf(ptr)           (ScreenOf(ptr)->window)
+//#define ScreenOf(ptr)           (ObjOf(ptr)->screen)
+//#define WindowOf(ptr)           (ScreenOf(ptr)->window)
 //#define BorderOf(p)             (ObjOf(p)->borderSize)
 //#define ResultOf(p)             (ObjOf(p)->resultData)
-#define ExitTypeOf(p)           (ObjOf(p)->exitType)
-#define EarlyExitOf(p)          (ObjOf(p)->earlyExit)
+//#define ExitTypeOf(p)           (ObjOf(p)->exitType)
+//#define EarlyExitOf(p)          (ObjOf(p)->earlyExit)
 
 /* titles */
 // #define TitleOf(w)              ObjOf(w)->title
@@ -245,38 +241,38 @@ extern std::vector<CDKOBJS*> all_objects;
 // #define TitleLinesOf(w)         ObjOf(w)->titleLines
 
 /* line-drawing characters */
-#define ULCharOf(w)             ObjOf(w)->ULChar
-#define URCharOf(w)             ObjOf(w)->URChar
-#define LLCharOf(w)             ObjOf(w)->LLChar
-#define LRCharOf(w)             ObjOf(w)->LRChar
-#define VTCharOf(w)             ObjOf(w)->VTChar
-#define HZCharOf(w)             ObjOf(w)->HZChar
-#define BXAttrOf(w)             ObjOf(w)->BXAttr
+//#define ULCharOf(w)             ObjOf(w)->ULChar
+//#define URCharOf(w)             ObjOf(w)->URChar
+//#define LLCharOf(w)             ObjOf(w)->LLChar
+//#define LRCharOf(w)             ObjOf(w)->LRChar
+//#define VTCharOf(w)             ObjOf(w)->VTChar
+//#define HZCharOf(w)             ObjOf(w)->HZChar
+//#define BXAttrOf(w)             ObjOf(w)->BXAttr
 
-#define setULCharOf(o,c)        MethodOf(o)->setULcharObj(ObjOf(o),c)
-#define setURCharOf(o,c)        MethodOf(o)->setURcharObj(ObjOf(o),c)
-#define setLLCharOf(o,c)        MethodOf(o)->setLLcharObj(ObjOf(o),c)
-#define setLRCharOf(o,c)        MethodOf(o)->setLRcharObj(ObjOf(o),c)
-#define setVTCharOf(o,c)        MethodOf(o)->setVTcharObj(ObjOf(o),c)
-#define setHZCharOf(o,c)        MethodOf(o)->setHZcharObj(ObjOf(o),c)
-#define setBXAttrOf(o,c)        MethodOf(o)->setBXattrObj(ObjOf(o),c)
-#define setBKAttrOf(o,c)        MethodOf(o)->setBKattrObj(ObjOf(o),c)
+//#define setULCharOf(o,c)        MethodOf(o)->setULcharObj(ObjOf(o),c)
+//#define setURCharOf(o,c)        MethodOf(o)->setURcharObj(ObjOf(o),c)
+//#define setLLCharOf(o,c)        MethodOf(o)->setLLcharObj(ObjOf(o),c)
+//#define setLRCharOf(o,c)        MethodOf(o)->setLRcharObj(ObjOf(o),c)
+//#define setVTCharOf(o,c)        MethodOf(o)->setVTcharObj(ObjOf(o),c)
+//#define setHZCharOf(o,c)        MethodOf(o)->setHZcharObj(ObjOf(o),c)
+//#define setBXAttrOf(o,c)        MethodOf(o)->setBXattrObj(ObjOf(o),c)
+//#define setBKAttrOf(o,c)        MethodOf(o)->setBKattrObj(ObjOf(o),c)
 
    /* pre/post-processing */
-#define PreProcessFuncOf(w)	(ObjOf(w)->preProcessFunction)
-#define PreProcessDataOf(w)	(ObjOf(w)->preProcessData)
-#define PostProcessFuncOf(w)	(ObjOf(w)->postProcessFunction)
-#define PostProcessDataOf(w)	(ObjOf(w)->postProcessData)
+//#define PreProcessFuncOf(w)	(ObjOf(w)->preProcessFunction)
+//#define PreProcessDataOf(w)	(ObjOf(w)->preProcessData)
+//#define PostProcessFuncOf(w)	(ObjOf(w)->postProcessFunction)
+//#define PostProcessDataOf(w)	(ObjOf(w)->postProcessData)
 /*
  * Position within the data area of a widget, accounting for border and title.
  */
 //#define SCREEN_XPOS(w,n)((n) + BorderOf(w))
-#define SCREEN_XPOS(w,n)((n) + borderSize)
+// #define SCREEN_XPOS(w,n)((n) + borderSize)
 //#define SCREEN_YPOS(w,n)((n) + BorderOf(w) + TitleLinesOf(w))
-#define SCREEN_YPOS(w,n)((n) + borderSize + titleLines)
+// #define SCREEN_YPOS(w,n)((n) + borderSize + titleLines)
 
 /* The cast is needed because traverse.c wants to use CDKOBJS pointers */
-#define ObjPtr(p)          ((CDKOBJS*)(p))
+// #define ObjPtr(p)          ((CDKOBJS*)(p))
 
 //#define MethodPtr(p,m)     ((ObjPtr(p))->fn->m)
 //#define MethodPtr(p,m)     ((ObjPtr(p))->m)
@@ -314,7 +310,7 @@ extern std::vector<CDKOBJS*> all_objects;
 // #define freeChecked(p)          if ((p) != 0) free(p)
 // #define freeAndNull(p)          if ((p) != 0) { free(p); p = 0; }
 
-#define isChar(c)               ((int)(c) >= 0 && (int)(c) < KEY_MIN)
+// #define isChar(c)               ((int)(c) >= 0 && (int)(c) < KEY_MIN)
 // #define CharOf(c)               ((unsigned char)(c))
 
 #define SIZEOF(v)               (sizeof(v)/sizeof((v)[0]))
@@ -329,16 +325,15 @@ extern std::vector<CDKOBJS*> all_objects;
 /*
  * Hide details of modifying widget->exitType
  */
-#define storeExitType(d)	ObjOf(d)->exitType =(d)->exitType
-#define initExitType(d)		storeExitType(d) = vNEVER_ACTIVATED
+// #define storeExitType(d)	ObjOf(d)->exitType =(d)->exitType
+// #define initExitType(d)		storeExitType(d) = vNEVER_ACTIVATED
 // #define setExitType(w,c)	setCdkExitType(ObjOf(w), &((w)->exitType), c)
-#define copyExitType(d,s)	storeExitType(d) = ExitTypeOf(s)
+// #define copyExitType(d,s)	storeExitType(d) = ExitTypeOf(s)
 /*
  * Use this if checkCDKObjectBind() returns true, use this function to
  * decide if the exitType should be set as a side-effect.
  */
-#define checkEarlyExit(w)	if (EarlyExitOf(w) != vNEVER_ACTIVATED) \
-				    storeExitType(w) = EarlyExitOf(w)
+// #define checkEarlyExit(w)	if (EarlyExitOf(w) != vNEVER_ACTIVATED) storeExitType(w) = EarlyExitOf(w)
 
 /*
  * Macros to check if caller is attempting to make the widget as high (or wide)
@@ -350,22 +345,24 @@ extern std::vector<CDKOBJS*> all_objects;
 /*
  * These set the drawing characters of the widget.
  */
-#define setCDKEntryULChar(w,c)             setULCharOf(w,c)
-#define setCDKEntryURChar(w,c)             setURCharOf(w,c)
-#define setCDKEntryLLChar(w,c)             setLLCharOf(w,c)
-#define setCDKEntryLRChar(w,c)             setLRCharOf(w,c)
-#define setCDKEntryVerticalChar(w,c)       setVTCharOf(w,c)
-#define setCDKEntryHorizontalChar(w,c)     setHZCharOf(w,c)
-#define setCDKEntryBoxAttribute(w,c)       setBXAttrOf(w,c)
+// #define setCDKEntryULChar(w,c)             setULCharOf(w,c)
+// #define setCDKEntryURChar(w,c)             setURCharOf(w,c)
+// #define setCDKEntryLLChar(w,c)             setLLCharOf(w,c)
+// #define setCDKEntryLRChar(w,c)             setLRCharOf(w,c)
+// #define setCDKEntryVerticalChar(w,c)       setVTCharOf(w,c)
+// #define setCDKEntryHorizontalChar(w,c)     setHZCharOf(w,c)
+// #define setCDKEntryBoxAttribute(w,c)       setBXAttrOf(w,c)
 
+/*
 #if	!defined(HAVE_GETMAXYX) && !defined(getmaxyx)
 #define getmaxyx(win,y,x)	(y = (win)?(win)->_maxy:ERR, x = (win)?(win)->_maxx:ERR)
 #endif
+*/
 
 #define	NONUMBERS	FALSE
 #define	NUMBERS		TRUE
 
-#define SCREENPOS(w,n) (w)->itemPos[n] - (w)->leftChar	/* + scrollbarAdj + BorderOf(w) */
+// #define SCREENPOS(w,n) (w)->itemPos[n] - (w)->leftChar	/* + scrollbarAdj + BorderOf(w) */
 
 
 
@@ -384,18 +381,18 @@ union CDKDataUnion {
    unsigned valueUnsigned;
 };
 
-#define unknownString   (char *)0
-#define unknownInt      (-1)
-#define unknownFloat    (0.0)
-#define unknownDouble   (0.0)
-#define unknownUnsigned (0)
+//#define unknownString   (char *)0
+// #define unknownInt      (-1)
+// #define unknownFloat    (0.0)
+// #define unknownDouble   (0.0)
+// #define unknownUnsigned (0)
 
 /*
  * This injects a single character into the menu widget.
  */
 //#define injectCDKObject(o,c,type)      (MethodOf(o)->injectObj    (ObjOf(o),c) ? ResultOf(o).value ## type : unknown ## type)
-#define injectCDKObject(/*o,*/c,type)      (injectObj    (/*ObjOf(o),*/c) ? ResultOf(this).value ## type : unknown ## type)
-#define injectCDKMenu(/*obj,*/input) injectCDKObject(/*obj,*/input,Int)
+// #define injectCDKObject(/*o,*/c,type)      (injectObj    (/*ObjOf(o),*/c) ? ResultOf(this).value ## type : unknown ## type)
+// #define injectCDKMenu(/*obj,*/input) injectCDKObject(/*obj,*/input,Int)
 
 /*
  * This enumerated typedef lists all of the CDK widget types.
@@ -564,7 +561,7 @@ void deleteCursesWindow(WINDOW *window);
 void moveCursesWindow(WINDOW *window, int xdiff, int ydiff);
 bool isHiddenDisplayType(EDisplayType type);
 int comparSort(const void *a, const void *b);
-void sortList(CDK_CSTRING *list, int length);
+// void sortList(CDK_CSTRING *list, int length);
 /*
 static int adjustAlphalistCB(EObjectType objectType GCC_UNUSED, void
 			      *object GCC_UNUSED,
@@ -778,6 +775,9 @@ struct ComboB:CDKOBJS
 			 ,chtype pfillerChar
 			 ,int objnr/*=-1*/
 			);
+	 void injectMyScroller(chtype key);
+	 void drawMyScroller(/*SAlphalist *widget*/);
+	 void eraseObj();// {eraseCDKFselect();}
 };
 
 /*
@@ -809,7 +809,7 @@ struct SEntry:CDKOBJS
    void settoend(); // GSchade
    void schreibl(chtype); // GSchade, callbackfn
    void zeichneFeld(); // GSchade
-	 void setCDKEntry(const char *value, int min, int max, bool Box GCC_UNUSED);
+	 void setCDKEntry(/*const char **/std::string& value, int min, int max, bool Box GCC_UNUSED);
 //	 const char* getCDKEntryValue();
 	 void setBKattrEntry(chtype attrib);
 	 void setBKattrObj(chtype);
@@ -854,7 +854,7 @@ struct SEntry:CDKOBJS
 	 int injectCDKEntry(chtype);
 	 int injectObj(chtype ch){return injectCDKEntry(ch);}
 	 void setCDKEntryValue(std::string newValue);
-	 void setCDKEntryValue(const char *newValue);
+//	 void setCDKEntryValue(const char *newValue);
 	 void eraseCDKEntry();
 	 void eraseObj(){eraseCDKEntry();}
 	 const char* activateCDKEntry(chtype *actions,int *Zweitzeichen/*=0*/,int *Drittzeichen/*=0*/, int obpfeil/*=0*/);
@@ -1049,15 +1049,12 @@ struct SFSelect:ComboB
 	void moveCDKFselect(/*CDKOBJS *object, */int xplace, int yplace, bool relative, bool refresh_flag);
 	const char *activateCDKFselect(/*SFSelect *fselect, */chtype *actions,int *Zweitzeichen/*=0*/,int *Drittzeichen/*=0*/,int obpfeil/*=0*/);
 	void destroyObj(){this->~SFSelect();}
-	void eraseCDKFselect();
-	void eraseObj(){eraseCDKFselect();}
+//	void eraseCDKFselect();
 	 void drawCDKFselect(bool Box, bool obmitscroller=0);
-	 void drawMyScroller(/*SFSelect *widget*/);
 	 void drawObj(bool Box);
 	 void setPWD(/*SFSelect *fselect*/);
 	 int injectCDKFselect(chtype input);
 	 int injectObj(chtype ch){return injectCDKFselect(ch);}
-	 void injectMyScroller(chtype key);
 	 void setCDKFselect(/*SFSelect *fselect, */const char *directory, chtype fieldAttrib, chtype filler, chtype highlight, 
 			 const char *dirAttribute, const char *fileAttribute, const char *linkAttribute, const char *sockAttribute, bool Box GCC_UNUSED);
 	 const char *contentToPath(/*SFSelect *fselect, */const char *content);
@@ -1068,6 +1065,7 @@ struct SFSelect:ComboB
 }; // struct SFSelect:CDKOBJS
 //typedef struct SFSelect CDKFSELECT;
 
+int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UNUSED, void *clientData, chtype key GCC_UNUSED);
 struct SAlphalist:ComboB
 {
 	 std::vector<std::string> plist;
@@ -1090,16 +1088,14 @@ struct SAlphalist:ComboB
 			 );
 	 ~SAlphalist();
 	 void destroyObj(){this->~SAlphalist();}
-	 void drawMyScroller(/*SAlphalist *widget*/);
 	 void drawCDKAlphalist(bool Box GCC_UNUSED, bool obmitscroller=0);
 	 void drawObj(bool Box);
 	 void moveCDKAlphalist(int xplace, int yplace, bool relative, bool refresh_flag);
-	 void injectMyScroller(chtype key);
 	 const char* activateCDKAlphalist(chtype *actions,int *Zweitzeichen/*=0*/,int *Drittzeichen/*=0*/,int obpfeil/*=0*/);
 	 int injectCDKAlphalist(chtype input);
 	 int injectObj(chtype ch){return injectCDKAlphalist(ch);}
-	 void eraseCDKAlphalist();
-	 void eraseObj(){eraseCDKAlphalist();}
+//	 void eraseCDKAlphalist();
+//	 void eraseObj(); //{eraseCDKAlphalist();}
 	 void destroyInfo();
 //	 void setCDKAlphalist(std::vector<std::string> *plistp, chtype fillerChar, chtype highlight, bool Box);
 	 void setCDKAlphalistContents(std::vector<std::string> *plistp);
