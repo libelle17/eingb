@@ -2589,6 +2589,14 @@ const char* SEntry::activateCDKEntry(chtype *actions,int *Zweitzeichen/*=0*/,int
           ((ComboB*)mutter)->zeichnescroll=0;
 					// muss, wenn nicht gleich wieder auf Return gedrückt wird, wieder auf 1 gesetzt werden
 					*Zweitzeichen=-12;
+				} else if (mutter->cdktype==vFSELECT && ((ComboB*)mutter)->zeichnescroll) {
+					ret=((SFSelect*)mutter)->injectCDKFselect(/*CDKOBJS *object, */input)?resultData.valueString:0;
+					if (ret) {
+						((ComboB*)mutter)->zeichnescroll=0;
+					}
+//					exitType = vNORMAL;
+					*Zweitzeichen=-12;
+					return ret;
 				}
 			} else {
 				if (mutter->cdktype==vALPHALIST && !((ComboB*)mutter)->zeichnescroll) {
@@ -3261,8 +3269,7 @@ int SFSelect::injectCDKFselect(/*CDKOBJS *object, */chtype input)
 {
 	//   SFSelect *fselect =(SFSelect *)object;
 	const char *filename{""};
-	bool file;
-	bool complete = FALSE;
+	bool complete{FALSE};
 	/* Let the user play. */
 	if (entryField) {
 	 if (entryField->injectCDKEntry(/*this->entryField, */input)) 
@@ -3276,7 +3283,7 @@ int SFSelect::injectCDKFselect(/*CDKOBJS *object, */chtype input)
 		return 0;
 	}
 	/* Can we change into the directory? */
-	file = chdir(filename);
+	bool file{chdir(filename)};
 	if (chdir(this->pwd.c_str())) {
 		return 0;
 	}
@@ -3288,20 +3295,15 @@ int SFSelect::injectCDKFselect(/*CDKOBJS *object, */chtype input)
 		complete = TRUE;
 	} else {
 		/* Set the file selector information. */
-		setCDKFselect(/*this, */filename,
-				this->fieldAttribute, this->fillerChar,
-				this->highlight,
-				this->dirAttribute
-				.c_str()
-				, this->fileAttribute
-				.c_str()
-				,
-				this->linkAttribute
-				.c_str()
-				, this->sockAttribute
-				.c_str()
-				,
-				/*ObjOf(this)->*/obbox);
+		setCDKFselect(/*this, */filename
+				,this->fieldAttribute
+				,this->fillerChar
+				,this->highlight
+				,this->dirAttribute.c_str()
+				,this->fileAttribute.c_str()
+				,this->linkAttribute.c_str()
+				,this->sockAttribute.c_str()
+				, /*ObjOf(this)->*/obbox);
 
 		/* Redraw the scrolling list. */
 		drawMyScroller(/*this*/);
@@ -4591,28 +4593,28 @@ void CDKOBJS::setBKattrObj(/*CDKOBJS *object, */chtype attrib)
  */
 int SScroll::createCDKScrollItemList(bool nummern, vector<string> *plistp)
 {
-	int status = 0;
+	int status{0};
+	pitem.clear();
+	itemPos.clear();
+	itemLen.clear();
+	listSize=0;
 	if (plistp->size() > 0) {
 		/* *INDENT-EQLS* */
-		if (
-				1
-				) {
-			int widestItem = 0;
-			/* Create the items in the scrolling list. */
-			status = 1;
-			for (size_t x = 0; x < plistp->size() ; x++) {
-				if (!allocListItem(x, nummern ?(x + 1) : 0, plistp->at(x).c_str())) {
-					status = 0;
-					break;
-				}
-				status=1;
-				widestItem = MAXIMUM(this->itemLen[x], widestItem);
+		int widestItem = 0;
+		/* Create the items in the scrolling list. */
+		status = 1;
+		for (size_t x = 0; x < plistp->size() ; x++) {
+			if (!allocListItem(x, nummern ?(x + 1) : 0, plistp->at(x).c_str())) {
+				status = 0;
+				break;
 			}
-			if (status) {
-				updateViewWidth(widestItem);
-				/* Keep the boolean flag 'numbers' */
-				this->numbers = nummern;
-			}
+			status=1;
+			widestItem = MAXIMUM(this->itemLen[x], widestItem);
+		}
+		if (status) {
+			updateViewWidth(widestItem);
+			/* Keep the boolean flag 'numbers' */
+			this->numbers = nummern;
 		}
 	} else {
 		status = 1;		/* null list is ok - for a while */
