@@ -3749,33 +3749,31 @@ static int preProcessEntryField(EObjectType cdktype GCC_UNUSED, void
 		int currPos = (entry->screenCol + entry->leftChar);
 		string pattern;
 
-			pattern=entry->efld;
-			{
+		pattern=entry->efld;
 
-			if (input == KEY_BACKSPACE || input == KEY_DC) {
-				if (input == KEY_BACKSPACE)
-					--currPos;
-				if (currPos >= 0)
-					pattern.erase(currPos,1);
-			} else {
-				/*
-				if (currPos==pattern.length()-1) {
-					pattern.append(1,(char)input);
-				} else {
-				*/
-	//mvwprintw(entry->screen->window,3,2,"preProcessEntryField,input: %c,crrPos: %i, pattern.length(): %i,screenCol: %i, leftChar: %i          ",input,currPos,pattern.length(),entry->screenCol, entry->leftChar);
-					pattern.insert(pattern.begin()+currPos,(char)input);
-					/*
-				}
-				*/
-	// wrefresh(entry->screen->window);
-			}
+		if (input == KEY_BACKSPACE || input == KEY_DC) {
+			if (input == KEY_BACKSPACE)
+				--currPos;
+			if (currPos >= 0)
+				pattern.erase(currPos,1);
+		} else {
+			/*
+				 if (currPos==pattern.length()-1) {
+				 pattern.append(1,(char)input);
+				 } else {
+			 */
+			//mvwprintw(entry->screen->window,3,2,"preProcessEntryField,input: %c,crrPos: %i, pattern.length(): %i,screenCol: %i, leftChar: %i          ",input,currPos,pattern.length(),entry->screenCol, entry->leftChar);
+			pattern.insert(pattern.begin()+currPos,(char)input);
+		/*
+			 }
+		 */
+			// wrefresh(entry->screen->window);
 		}
-			if (!strlen(pattern.c_str())) empty=TRUE;
+		if (!strlen(pattern.c_str())) empty=TRUE;
 		else if ((Index = searchList(
-		&alphalist->plist,
+						&alphalist->plist,
 						pattern.c_str()
-							))>=0) {
+						))>=0) {
 			/* *INDENT-EQLS* */
 			difference           = Index - scrollp->currentItem;
 			absoluteDifference   = abs(difference);
@@ -3800,9 +3798,9 @@ static int preProcessEntryField(EObjectType cdktype GCC_UNUSED, void
 			alphalist->drawMyScroller();
 		} else {
 			/* Kommentar G.Schade 17.11.18, erlaubt nicht in der Liste vertretene Eingaben
-			Beep();
-			result = 0;
-			*/
+				 Beep();
+				 result = 0;
+			 */
 		}
 	}
 	if (empty) {
@@ -3846,7 +3844,6 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 	int tempWidth                = 0;
 	int tempHeight               = 0;
 	int labelLen                 = 0;
-	int x, junk2;
 	/* *INDENT-OFF* */
 	static const struct { int from; int to; } bindings[] = {
 		{ CDK_BACKCHAR,	KEY_PPAGE },
@@ -3859,7 +3856,8 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 //	setBox(Box);
 	/* Translate the label char *pointer to a chtype pointer. */
 	if (label) {
-//		chtype *chtypeLabel = char2Chtypeh(label, &labelLen, &junk2 /* GSchade Anfang */ ,highnr /* GSchade Ende */);
+		int junk2;
+		//		chtype *chtypeLabel = char2Chtypeh(label, &labelLen, &junk2 /* GSchade Anfang */ ,highnr /* GSchade Ende */);
 //		freeChtype(chtypeLabel);
 		chtstr chtypeLabel(label,&labelLen,&junk2,highnr);
 	}
@@ -3960,7 +3958,7 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
    URChar=ACS_LTEE;	
 
 	/* Setup the key bindings. */
-	for (x = 0; x <(int)SIZEOF(bindings); ++x)
+	for (int x = 0; x <(int)SIZEOF(bindings); ++x)
 		bindCDKObject(
 				(chtype)bindings[x].from,
 				getcCDKBind,
