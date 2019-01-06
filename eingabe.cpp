@@ -57,7 +57,7 @@ __attribute__((__unused__)) static int rfende(EObjectType cdktype GCC_UNUSED,
 		vector<string> buttons{buttonsstr,buttonsstr+SIZEOF(buttonsstr)};
 
 		/* Create the dialog box. */
-		SDialog *question = new SDialog(((CDKOBJS*)object)->screen,
+		SDialog *question = new SDialog(((GObj*)object)->screen,
 				5,5,
 				&msgv,
 				&buttons,
@@ -71,14 +71,14 @@ __attribute__((__unused__)) static int rfende(EObjectType cdktype GCC_UNUSED,
 			/* Activate the dialog box. */
 			/*int selection = */question->activateCDKDialog(0);
 			if (question->exitType!=vESCAPE_HIT && question->currentButton==1) {
-				((CDKOBJS*)object)->earlyExit=vNORMAL;
+				((GObj*)object)->earlyExit=vNORMAL;
 				obende=1;
 			}
 			/* Clean up. */
 			question->destroyCDKDialog();
 			//			wrefresh(allgscr->window);
 //			refreshCDKWindow(allgscr->window);
-			((CDKOBJS*)object)->screen->refreshCDKScreen();
+			((GObj*)object)->screen->refreshCDKScreen();
 		}
 	}
 	return TRUE;
@@ -92,7 +92,7 @@ static int XXXCB(EObjectType cdktype GCC_UNUSED,
 {
 	vector<string> mesg(1);
 	mesg[0]="Hilfefunktion";
-	((CDKOBJS*)object)->screen->popupLabel(/*(SScreen*)allgscr,*/ mesg);
+	((GObj*)object)->screen->popupLabel(/*(SScreen*)allgscr,*/ mesg);
 //	printf("Hilfefunktion aufgerufen\n\r\n\r");
 	return(TRUE);
 }
@@ -132,7 +132,7 @@ struct hotkst {
 	eingtyp obalph;
 	int highinr; // fuer jeden vorausgehenden Umlaut usw. 2 Buchstaben rechnen
 	int buch;
-	CDKOBJS *eingabef;
+	GObj *eingabef;
 } hk[]={
 	//		 /*
 	{"</R/U/6>Directory:<!R!6!U> ",4,auswfld},
@@ -208,13 +208,13 @@ int main(int argc, char **argv)
 			else {
 				hk[aktent].highinr++;
 				if (hnr==hk[aktent].highnr) {
-					if ((unsigned char)hk[aktent].label[i]==194 ||(unsigned char)hk[aktent].label[i]==195) {
+					if ((unsigned char)hk[aktent].label[i]==194 ||(unsigned char)hk[aktent].label[i]==195||(unsigned char)hk[aktent].label[i]==130) {
 						hk[aktent].buch=(unsigned char)hk[aktent].label[i]*256+(unsigned char)hk[aktent].label[i+1];
 					} else
 						hk[aktent].buch=(unsigned char)hk[aktent].label[i];
 					break;
 				}
-				else if ((unsigned char)hk[aktent].label[i]==194 ||(unsigned char)hk[aktent].label[i]==195) {}
+				else if ((unsigned char)hk[aktent].label[i]==194 ||(unsigned char)hk[aktent].label[i]==195||(unsigned char)hk[aktent].label[i]==130) {}
 				else hnr++;
 			}
 		}
@@ -357,7 +357,7 @@ int main(int argc, char **argv)
 					//					mvwprintw(cdkscreen->window,(aktent+1+Znr)%maxhk+yabst,100,"-->(%c) %i" ,hk[(aktent+1+Znr)%maxhk].buch,hk[(aktent+1+Znr)%maxhk].buch);
 					refreshCDKWindow(cdkscreen->window);
 					if (Zweitzeichen==hk[(aktent+1+Znr)%maxhk].buch ||
-							((Zweitzeichen==194||Zweitzeichen==195)&&Zweitzeichen*256+Drittzeichen==hk[(aktent+1+Znr)%maxhk].buch)) {
+							((Zweitzeichen==194||Zweitzeichen==195||Zweitzeichen==130)&&Zweitzeichen*256+Drittzeichen==hk[(aktent+1+Znr)%maxhk].buch)) {
 						//						mvwprintw(cdkscreen->window,4,60,"buch: %c",hk[(aktent+1+Znr)%maxhk].buch);
 						refreshCDKWindow(cdkscreen->window);
 						Znr=(aktent+1+Znr)%maxhk;

@@ -33,7 +33,7 @@ void chtstr::gibaus() const
 
 //ALL_SCREENS *all_screens;
 vector<SScreen*> all_screens;
-vector<CDKOBJS*> all_objects;
+vector<GObj*> all_objects;
 
 /*
  * Return an integer like 'floor()', which returns a double.
@@ -593,7 +593,7 @@ void writeChtypeAttrib(WINDOW *window,
 		int altumlz=0;
 		for (int x = 0; x < display; x++) {
 			// GSchade 25.9.18
-			if (1&&((int)(unsigned char)string[x+start]==194||(int)(unsigned char)string[x+start]==195)) {
+			if (1&&((int)(unsigned char)string[x+start]==194||(int)(unsigned char)string[x+start]==195||(int)(unsigned char)string[x+start]==130)) {
 				//			printf("Buchstabe: %c %i\r\n",(unsigned char)string[x+start], (int)(unsigned char)string[x+start]);
 				char ausg[3];
 				*ausg=string[x+start];
@@ -1047,9 +1047,9 @@ void initCDKColor(void)
 /*
  * Returns the object on which the focus lies.
  */
-CDKOBJS* SScreen::getCDKFocusCurrent()
+GObj* SScreen::getCDKFocusCurrent()
 {
-   CDKOBJS *result = 0;
+   GObj *result = 0;
    int n = this->objectFocus;
    if (n >= 0 && n < this->objectCount)
       result = this->object[n];
@@ -1059,10 +1059,10 @@ CDKOBJS* SScreen::getCDKFocusCurrent()
 /*
  * Set focus to the next object, returning it.
  */
-CDKOBJS *SScreen::setCDKFocusNext()
+GObj *SScreen::setCDKFocusNext()
 {
-	CDKOBJS *result = 0;
-	CDKOBJS *curobj;
+	GObj *result = 0;
+	GObj *curobj;
 	int n = getFocusIndex();
 	int first = n;
 	for (;;) {
@@ -1085,10 +1085,10 @@ CDKOBJS *SScreen::setCDKFocusNext()
 /*
  * Set focus to the previous object, returning it.
  */
-CDKOBJS* SScreen::setCDKFocusPrevious()
+GObj* SScreen::setCDKFocusPrevious()
 {
-	CDKOBJS *result = 0;
-	CDKOBJS *curobj;
+	GObj *result = 0;
+	GObj *curobj;
 	int n = getFocusIndex();
 	int first = n;
 	for (;;) {
@@ -1110,10 +1110,10 @@ CDKOBJS* SScreen::setCDKFocusPrevious()
  * Set focus to a specific object, returning it.
  * If the object cannot be found, return null.
  */
-CDKOBJS* SScreen::setCDKFocusCurrent(/*SScreen *screen, */CDKOBJS *newobj)
+GObj* SScreen::setCDKFocusCurrent(/*SScreen *screen, */GObj *newobj)
 {
-	CDKOBJS *result = 0;
-	CDKOBJS *curobj;
+	GObj *result = 0;
+	GObj *curobj;
 	int n = getFocusIndex();
 	int first = n;
 	for (;;) {
@@ -1134,7 +1134,7 @@ CDKOBJS* SScreen::setCDKFocusCurrent(/*SScreen *screen, */CDKOBJS *newobj)
 /*
  * Set focus to the first object in the screen.
  */
-CDKOBJS* SScreen::setCDKFocusFirst(/*SScreen *screen*/)
+GObj* SScreen::setCDKFocusFirst(/*SScreen *screen*/)
 {
    setFocusIndex(/*screen, screen->*/objectCount - 1);
    return switchFocus(setCDKFocusNext(/*screen*/), 0);
@@ -1143,7 +1143,7 @@ CDKOBJS* SScreen::setCDKFocusFirst(/*SScreen *screen*/)
 /*
  * Set focus to the last object in the screen.
  */
-/*CDKOBJS **/void SScreen::setCDKFocusLast(/*SScreen *screen*/)
+/*GObj **/void SScreen::setCDKFocusLast(/*SScreen *screen*/)
 {
    setFocusIndex(/*screen, */0);
    /*return */switchFocus(setCDKFocusPrevious(/*screen*/), 0);
@@ -1179,14 +1179,14 @@ void SScreen::exitCancelCDKScreen(/*SScreen *screen*/)
 }
 
 /*
-void CDKOBJS::exitOKCDKScreenOf()
+void GObj::exitOKCDKScreenOf()
 {
    screen->exitOKCDKScreen();
 }
 */
 
 /*
-void CDKOBJS::exitCancelCDKScreenOf()
+void GObj::exitCancelCDKScreenOf()
 {
    screen->exitCancelCDKScreen();
 }
@@ -1197,14 +1197,14 @@ void SScreen::resetCDKScreen()
    refreshDataCDKScreen();
 }
 /*
-void CDKOBJS::resetCDKScreenOf()
+void GObj::resetCDKScreenOf()
 {
    screen->resetCDKScreen();
 }
 */
 
 void SScreen::traverseCDKOnce(/*SScreen *screen,*/
-		CDKOBJS *curobj,
+		GObj *curobj,
 		int keyCode,
 		bool functionKey,
 		CHECK_KEYCODE funcMenuKey)
@@ -1255,7 +1255,7 @@ void SScreen::traverseCDKOnce(/*SScreen *screen,*/
 int SScreen::traverseCDKScreen(/*SScreen *screen*/)
 {
 	int result = 0;
-	CDKOBJS *curobj = setCDKFocusFirst(/*screen*/);
+	GObj *curobj = setCDKFocusFirst(/*screen*/);
 	if (curobj) {
 		refreshDataCDKScreen(/*screen*/);
 		/*screen->*/exitStatus = CDKSCREEN_NOEXIT;
@@ -1273,10 +1273,10 @@ int SScreen::traverseCDKScreen(/*SScreen *screen*/)
 }
 
 
-CDKOBJS* SScreen::handleMenu(/*SScreen *screen, */CDKOBJS *menu, CDKOBJS *oldobj)
+GObj* SScreen::handleMenu(/*SScreen *screen, */GObj *menu, GObj *oldobj)
 {
 	bool done = FALSE;
-	CDKOBJS *newobj;
+	GObj *newobj;
 	switchFocus(menu, oldobj);
 	while (!done) {
 		bool functionKey;
@@ -1309,7 +1309,7 @@ CDKOBJS* SScreen::handleMenu(/*SScreen *screen, */CDKOBJS *menu, CDKOBJS *oldobj
 
 
 
-void CDKOBJS::unsetFocus()
+void GObj::unsetFocus()
 {
    curs_set(0);
 //   if (obj) {
@@ -1319,7 +1319,7 @@ void CDKOBJS::unsetFocus()
 //   }
 }
 
-void CDKOBJS::setFocus()
+void GObj::setFocus()
 {
 //   if (obj) {
 //      HasFocusObj(this) = TRUE;
@@ -1329,7 +1329,7 @@ void CDKOBJS::setFocus()
    curs_set(1);
 }
 
-CDKOBJS* switchFocus(CDKOBJS *newobj, CDKOBJS *oldobj)
+GObj* switchFocus(GObj *newobj, GObj *oldobj)
 {
    if (oldobj != newobj) {
       if (oldobj) oldobj->unsetFocus();
@@ -1341,7 +1341,7 @@ CDKOBJS* switchFocus(CDKOBJS *newobj, CDKOBJS *oldobj)
 /*
  * This registers a CDK object with a screen.
  */
-void CDKOBJS::registerCDKObject(SScreen *screen, EObjectType cdktype)
+void GObj::registerCDKObject(SScreen *screen, EObjectType cdktype)
 {
 	if (validObjType(cdktype)) {
 		setScreenIndex(screen);
@@ -1352,9 +1352,9 @@ void CDKOBJS::registerCDKObject(SScreen *screen, EObjectType cdktype)
 /*
  * This registers a CDK object with a screen.
  */
-void CDKOBJS::reRegisterCDKObject(EObjectType cdktype/*, void *object*/)
+void GObj::reRegisterCDKObject(EObjectType cdktype/*, void *object*/)
 {
-//   CDKOBJS *obj =(CDKOBJS *)object;
+//   GObj *obj =(GObj *)object;
    registerCDKObject(/*obj->*/screen, cdktype/*, object*/);
 }
 
@@ -1375,9 +1375,9 @@ void SScreen::swapCDKIndices(/*SScreen *screen, */int n1, int n2)
 /*
  * This 'brings' a CDK object to the top of the stack.
  */
-void CDKOBJS::raiseCDKObject(EObjectType cdktype/*, void *object*/)
+void GObj::raiseCDKObject(EObjectType cdktype/*, void *object*/)
 {
-//   CDKOBJS *obj = (CDKOBJS *)object;
+//   GObj *obj = (GObj *)object;
 //   if (validObjType(obj, cdktype)) {
 //      SScreen *screen = obj->screen;
       screen->swapCDKIndices(screenIndex, screen->objectCount - 1);
@@ -1387,9 +1387,9 @@ void CDKOBJS::raiseCDKObject(EObjectType cdktype/*, void *object*/)
 /*
  * This 'lowers' an object.
  */
-void CDKOBJS::lowerCDKObject(EObjectType cdktype/*, void *object*/)
+void GObj::lowerCDKObject(EObjectType cdktype/*, void *object*/)
 {
-//   CDKOBJS *obj = (CDKOBJS *)object;
+//   GObj *obj = (GObj *)object;
 //   if (validObjType(obj, cdktype)) {
 //      SScreen *screen = obj->screen;
       screen->swapCDKIndices(screenIndex, 0);
@@ -1400,11 +1400,11 @@ void CDKOBJS::lowerCDKObject(EObjectType cdktype/*, void *object*/)
 
 /*
  * Set the object's exit-type based on the input.
- * The .exitType field should have been part of the CDKOBJS struct, but it
+ * The .exitType field should have been part of the GObj struct, but it
  * is used too pervasively in older applications to move(yet).
  */
-//void CDKOBJS::setCdkExitType(chtype ch)
-void CDKOBJS::setExitType(chtype ch)
+//void GObj::setCdkExitType(chtype ch)
+void GObj::setExitType(chtype ch)
 {
    switch (ch) {
    case KEY_ERROR:
@@ -1427,19 +1427,19 @@ void CDKOBJS::setExitType(chtype ch)
  * Set indices so the screen and object point to each other.
  */
 // etwas andere Funktionalität
-void CDKOBJS::setScreenIndex(SScreen *pscreen)
+void GObj::setScreenIndex(SScreen *pscreen)
 {
   screen=pscreen;
 	screen->object.push_back(this);
 	screenIndex=screen->object.size()-1;
 }
 
-CDKOBJS::~CDKOBJS()
+GObj::~GObj()
 {
 	destroyCDKObject();
 }
 
-void CDKOBJS::destroyCDKObject()
+void GObj::destroyCDKObject()
 {
 	size_t pos{0};
 	for(auto akt:all_objects) {
@@ -1453,7 +1453,7 @@ void CDKOBJS::destroyCDKObject()
 	}
 }
 
-void CDKOBJS::destroyObj()
+void GObj::destroyObj()
 {
 	destroyCDKObject();
 }
@@ -1461,9 +1461,9 @@ void CDKOBJS::destroyObj()
 /*
  * This removes an object from the CDK screen.
  */
-void CDKOBJS::unregisterCDKObject(EObjectType cdktype/*, void *object*/)
+void GObj::unregisterCDKObject(EObjectType cdktype/*, void *object*/)
 {
-	//   CDKOBJS *obj = (CDKOBJS *)object;
+	//   GObj *obj = (GObj *)object;
 	if (validObjType(cdktype) && this->screenIndex >= 0) {
 //		SScreen *screen = (this)->screen;
 		if (screen) {
@@ -1565,14 +1565,14 @@ void SScroll::deleteCDKScrollItem(/*SScroll *scrollp, */int position)
 	}
 }
 
-void SScroll::focusCDKScroll(/*CDKOBJS *object*/)
+void SScroll::focusCDKScroll(/*GObj *object*/)
 {
 //   SScroll *scrollp =(SScroll *)object;
    drawCDKScrollCurrent(/*scrollp*/);
    wrefresh(/*scrollp->*/listWin);
 }
 
-void SScroll::unfocusCDKScroll(/*CDKOBJS *object*/)
+void SScroll::unfocusCDKScroll(/*GObj *object*/)
 {
 //   SScroll *scrollp =(SScroll *)object;
    drawCDKScrollCurrent(/*scrollp*/);
@@ -1604,7 +1604,7 @@ const int abstand{
 /*
  * This moves the entry field to the given location.
  */
-void SEntry::moveCDKEntry(/*CDKOBJS *object,*/
+void SEntry::moveCDKEntry(/*GObj *object,*/
 		int xplace,
 		int yplace,
 		bool relative,
@@ -1691,7 +1691,7 @@ void SAlphalist::moveCDKAlphalist(
 /*
  * This moves the fselect field to the given location.
  */
-void SFSelect::moveCDKFselect(/*CDKOBJS *object,*/
+void SFSelect::moveCDKFselect(/*GObj *object,*/
 			     int xplace,
 			     int yplace,
 			     bool relative,
@@ -1929,7 +1929,7 @@ void SScroll::drawCDKScroll(bool Box,bool obmit)
 /*
  * This function destroys
  */
-SScroll::~SScroll(/*CDKOBJS *object*/)
+SScroll::~SScroll(/*GObj *object*/)
 {
 		//SScroll *scrollp =(SScroll *)object;
 		cleanCdkTitle();
@@ -1966,7 +1966,7 @@ void aufSplit(vector<string> *tokens, const string& text, const char sep/*=' '*/
 /*
  * Set the widget's title.
  */
-int CDKOBJS::setCdkTitle(const char *titlec, int boxWidth)
+int GObj::setCdkTitle(const char *titlec, int boxWidth)
 {
 	cleanCdkTitle();
 	if (titlec) {
@@ -2004,12 +2004,12 @@ int CDKOBJS::setCdkTitle(const char *titlec, int boxWidth)
 		}
 	}
 	return boxWidth;
-} // int CDKOBJS::setCdkTitle(const char *title, int boxWidth)
+} // int GObj::setCdkTitle(const char *title, int boxWidth)
 
 /*
  * Draw the widget's title.
  */
-void CDKOBJS::drawCdkTitle(WINDOW *win)
+void GObj::drawCdkTitle(WINDOW *win)
 {
 	for (int x = 0; x < titleLines; x++) {
 		writeChtype(win,
@@ -2025,7 +2025,7 @@ void CDKOBJS::drawCdkTitle(WINDOW *win)
 /*
  * Remove storage for the widget's title.
  */
-void CDKOBJS::cleanCdkTitle()
+void GObj::cleanCdkTitle()
 {
 //	CDKfreeChtypes(title);
 //	title = 0;
@@ -2036,7 +2036,7 @@ void CDKOBJS::cleanCdkTitle()
 	titleLines = 0;
 }
 
-bool CDKOBJS::validObjType(EObjectType type)
+bool GObj::validObjType(EObjectType type)
 {
 	bool valid = FALSE;
 	//   if (obj && ObjTypeOf(obj) == type) {
@@ -2089,12 +2089,12 @@ bool CDKOBJS::validObjType(EObjectType type)
 #define KEY_MAX 512
 #endif
 
-CDKOBJS* CDKOBJS::bindableObject()
+GObj* GObj::bindableObject()
 {
 	return this;
 }
 
-CDKOBJS* ComboB::bindableObject()
+GObj* ComboB::bindableObject()
 {
 	return entryField;
 }
@@ -2102,12 +2102,12 @@ CDKOBJS* ComboB::bindableObject()
 /*
  * This inserts a binding.
  */
-void CDKOBJS::bindCDKObject(
+void GObj::bindCDKObject(
 		    chtype key,
 		    BINDFN function,
 		    void *data)
 {
-	CDKOBJS *obj = bindableObject();
+	GObj *obj = bindableObject();
 	if (obj) {
 		if (key==9) {
 			// int test{0};
@@ -2119,9 +2119,9 @@ void CDKOBJS::bindCDKObject(
 /*
  * This removes a binding on an object.
  */
-void CDKOBJS::unbindCDKObject(chtype key)
+void GObj::unbindCDKObject(chtype key)
 {
-	CDKOBJS *obj = bindableObject();
+	GObj *obj = bindableObject();
 	if (obj) {
 		obj->bindv.erase(key);
 	}
@@ -2130,9 +2130,9 @@ void CDKOBJS::unbindCDKObject(chtype key)
 /*
  * This removes all the bindings for the given objects.
  */
-void CDKOBJS::cleanCDKObjectBindings()
+void GObj::cleanCDKObjectBindings()
 {
-	CDKOBJS *obj = bindableObject();
+	GObj *obj = bindableObject();
 	if (obj) {
 		obj->bindv.clear();
 	}
@@ -2145,9 +2145,9 @@ void CDKOBJS::cleanCDKObjectBindings()
  * If it doesn't it returns a FALSE.  This way we can 'overwrite' coded
  * bindings.
  */
-int CDKOBJS::checkCDKObjectBind(chtype key)
+int GObj::checkCDKObjectBind(chtype key)
 {
-	CDKOBJS *obj = bindableObject();
+	GObj *obj = bindableObject();
 	if (obj) {
 		if (obj->bindv.find(key)!=obj->bindv.end()) {
 			BINDFN function=obj->bindv[key].bindFunction;
@@ -2161,10 +2161,10 @@ int CDKOBJS::checkCDKObjectBind(chtype key)
 /*
  * This checks to see if the binding for the key exists.
  */
-bool CDKOBJS::isCDKObjectBind(chtype key)
+bool GObj::isCDKObjectBind(chtype key)
 {
 	bool result = FALSE;
-	CDKOBJS *obj = bindableObject();
+	GObj *obj = bindableObject();
 	if (obj) {
 		if (obj->bindv.find(key)!=obj->bindv.end()) {
 			result=TRUE;
@@ -2178,7 +2178,7 @@ bool CDKOBJS::isCDKObjectBind(chtype key)
  * Draw a box around the given window using the object's defined line-drawing
  * characters.
  */
-void CDKOBJS::drawObjBox(WINDOW *win)
+void GObj::drawObjBox(WINDOW *win)
 {
 	attrbox(win,
 			ULChar,
@@ -2193,10 +2193,10 @@ void CDKOBJS::drawObjBox(WINDOW *win)
 /*
  * Read from the input window, filtering keycodes as needed.
  */
-int CDKOBJS::getcCDKObject()
+int GObj::getcCDKObject()
 {
 	// EObjectType cdktype = ObjTypeOf(this);
-	CDKOBJS *test = bindableObject();
+	GObj *test = bindableObject();
 	int result = wgetch(inputWindow);
 	// printf("%c %ul\n",result,result); //G.Schade
 	//BINDFN fn{0};
@@ -2242,13 +2242,13 @@ int CDKOBJS::getcCDKObject()
 		}
 	}
 	return result;
-} // int CDKOBJS::getcCDKObject()
+} // int GObj::getcCDKObject()
 
 /*
  * Use this function rather than getcCDKObject(), since we can extend it to
  * handle wide-characters.
  */
-int CDKOBJS::getchCDKObject(bool *functionKey)
+int GObj::getchCDKObject(bool *functionKey)
 {
    int key = getcCDKObject();
    *functionKey = (key >= KEY_MIN && key <= KEY_MAX);
@@ -2269,13 +2269,13 @@ void SEntry::CDKEntryCallBack(chtype character)
 void SEntry::schreibl(chtype character)
 {
   static bool altobuml=0;
-  const bool obuml=(character==(chtype)-61||character==(chtype)-62);
+  const bool obuml=(character==(chtype)-61||character==(chtype)-62||character==(chtype)-126);
   int plainchar;
   if (altobuml||obuml) plainchar=character; else plainchar=filterByDisplayType(dispType, character);
 	// wenn Ende erreicht wuerde, dann von 2-Buchstabenlaengen langen Buchstaben keinen schreiben
 //	const int slen=strlen(efld.c_str());
 	const int slen=efld.length();
-  if (plainchar == ERR ||(obuml&&slen>max-2)||(altobuml&&slen>max-2&&efld[slen-1]!=-61&&efld[slen-1]!=-62)||(slen >= max)) {
+  if (plainchar == ERR ||(obuml&&slen>max-2)||(altobuml&&slen>max-2&&efld[slen-1]!=-61&&efld[slen-1]!=-62&&efld[slen-1]!=-126)||(slen >= max)) {
     Beep();
   } else {
     /* Update the screen and pointer. */
@@ -2294,7 +2294,7 @@ void SEntry::schreibl(chtype character)
         /* Do not update the pointer if it's the last character */
         if ((int)(temp + 1) < max) {
           lbuch++;
-          if (efld[leftChar]==-61||efld[leftChar]==-62) {
+          if (efld[leftChar]==-61||efld[leftChar]==-62||efld[leftChar]==-126) {
 						leftChar++;
 						screenCol--;
 					}
@@ -2349,7 +2349,7 @@ void SEntry::zeichneFeld()
 			}
 			size_t aktumlz=0;
 			for (x = leftChar; x < infoLength; x++) {
-				if (efld[x]==-61 || efld[x]==-62) {
+				if (efld[x]==-61 || efld[x]==-62|| efld[x]==-126) {
 					char ausgb[3]={0};
 					ausgb[0]=efld[x];
 					ausgb[1]=efld[x+1];
@@ -2385,11 +2385,11 @@ SEntry::SEntry(SScreen *cdkscreen,
 		bool obBox,
 		bool pshadow,
 		// GSchade Anfang
-		CDKOBJS* pmutter,
+		GObj* pmutter,
 		int highnr/*=0*/,
 		int aktent/*=-1*/
 		// GSchade Ende
-		): CDKOBJS(cdkscreen,cdkscreen->window,obBox,pshadow,vENTRY,/*acceptsFocus*/1,/*hasFocus*/1,/*isVisible*/1,/*objnr*/aktent)
+		): GObj(cdkscreen,cdkscreen->window,obBox,pshadow,vENTRY,/*acceptsFocus*/1,/*hasFocus*/1,/*isVisible*/1,/*objnr*/aktent)
 			,fieldWidth(fWidth),boxWidth(0),boxHeight(borderSize*2+1)
 {
 	// GSchade Anfang
@@ -2429,7 +2429,7 @@ SEntry::SEntry(SScreen *cdkscreen,
 		labelp=new chtstr(labelstr,&labelLen,&junk,highnr);
 		// GSchade Anfang
 		for(int i=0;labelp->getinh()[i];i++) {
-			if ((int)((unsigned char)labelp->getinh()[i])==194 ||(int)((unsigned char)labelp->getinh()[i])==195) {
+			if ((int)((unsigned char)labelp->getinh()[i])==194 ||(int)((unsigned char)labelp->getinh()[i])==195||(int)((unsigned char)labelp->getinh()[i])==130) {
 				labelumlz++;
 			}
 		}
@@ -2558,7 +2558,7 @@ const char* SEntry::activateCDKEntry(chtype *actions,int *Zweitzeichen/*=0*/,int
 						// muss, wenn nicht gleich wieder auf Return gedrückt wird, wieder auf 1 gesetzt werden
 						*Zweitzeichen=-12;
 					} else if (mutter->cdktype==vFSELECT) {
-						int iret{((SFSelect*)mutter)->injectCDKFselect(/*CDKOBJS *object, */input)};
+						int iret{((SFSelect*)mutter)->injectCDKFselect(/*GObj *object, */input)};
 						ret =iret?resultData.valueString:0;
 						if (((SFSelect*)mutter)->exitType) {
 							((ComboB*)mutter)->zeichnescroll=0;
@@ -2576,7 +2576,7 @@ const char* SEntry::activateCDKEntry(chtype *actions,int *Zweitzeichen/*=0*/,int
 				}
 				if (input==27) {
 					*Zweitzeichen =(chtype)getchCDKObject(&functionKey);
-					if (*Zweitzeichen==194||*Zweitzeichen==195) {
+					if (*Zweitzeichen==194||*Zweitzeichen==195||*Zweitzeichen==130) {
 						*Drittzeichen =(chtype)getchCDKObject(&functionKey);
 					} else if (*Zweitzeichen=='+') {
 						// Vervollständigen
@@ -2707,17 +2707,23 @@ int SEntry::injectCDKEntry(chtype input)
 	static char umlaut[3]={0};
 	const int inpint=input;
 	static int zahl{0};
-	mvwprintw(this->screen->window,2,2,"%i injectCDKEntry %c %i          ",zahl++,input,input);
-	// screen->refreshCDKScreen(); // 21.12.18: Übeltäter, schreibt Listeneinträge an falsche Stellen
-	if (inpint==194 || inpint==195) {
+	static chtype altinput{0};
+	mvwprintw(this->screen->window,2,2,"%i injectCDKEntry %c %i          ",zahl-1,altinput,altinput);
+	mvwprintw(this->screen->window,3,2,"%i injectCDKEntry %c %i          ",zahl++,input,input);
+	altinput=input;
+	screen->refreshCDKScreen(); // 21.12.18: Übeltäter, schreibt Listeneinträge an falsche Stellen
+	if (inpint==194 || inpint==195 || inpint==130) {
 //		printf("Eintrag: %i\n",inpint);
+		mvwprintw(this->screen->window,4,2,"schreibe Umlaut");
 		*umlaut=inpint;
 		umlaut[1]=0;
-	} else if ((unsigned char)*umlaut==194 ||(unsigned char)*umlaut==195) {
+	} else if ((unsigned char)*umlaut==194 ||(unsigned char)*umlaut==195||(unsigned char)*umlaut==130) {
 //		printf("Folgezeichen: %i\n",inpint);
 		//printf("%c (%i)\n",inpint,inpint);
+		mvwprintw(this->screen->window,4,2,"schrieb  Umlaut");
 		umlaut[1]=inpint;
 	} else {
+		mvwprintw(this->screen->window,4,2,"               ");
 //		printf("sonstiges Zeichen: %i\n",inpint);
 		umlaut[1]=*umlaut=0;
 	}
@@ -2778,7 +2784,7 @@ int SEntry::injectCDKEntry(chtype input)
 						Beep();
 					} else if (!this->screenCol) {
 						/* Scroll left.  */
-						if (currPos>1) if (this->efld[currPos-2]==-61 || this->efld[currPos-2]==-62) this->leftChar--;
+						if (currPos>1) if (this->efld[currPos-2]==-61 || this->efld[currPos-2]==-62|| this->efld[currPos-2]==-126) this->leftChar--;
 						this->leftChar--;
 						this->lbuch--;
 						this->zeichneFeld();
@@ -2786,7 +2792,7 @@ int SEntry::injectCDKEntry(chtype input)
 						/* Move left. */
 						wmove(this->fieldWin, 0, --this->sbuch);
 						this->screenCol--;
-						if (currPos>1) if (this->efld[currPos-2]==-61 || this->efld[currPos-2]==-62) this->screenCol--;
+						if (currPos>1) if (this->efld[currPos-2]==-61 || this->efld[currPos-2]==-62|| this->efld[currPos-2]==-126) this->screenCol--;
 					}
 					break;
 				case KEY_RIGHT:
@@ -2794,19 +2800,19 @@ int SEntry::injectCDKEntry(chtype input)
 						Beep();
 					} else if (this->sbuch == this->fieldWidth - 1) {
 						/* Scroll to the right. */
-						if (this->efld[this->leftChar]==-61 || this->efld[this->leftChar]==-62) {
+						if (this->efld[this->leftChar]==-61 || this->efld[this->leftChar]==-62|| this->efld[this->leftChar]==-126) {
 							this->screenCol--;
 							this->leftChar++;
 						}
 						this->leftChar++;
 						this->lbuch++;
-						if (this->efld[currPos]==-61 || this->efld[currPos]==-62) this->screenCol++;
+						if (this->efld[currPos]==-61 || this->efld[currPos]==-62|| this->efld[currPos]==-126) this->screenCol++;
 						this->zeichneFeld();
 					} else {
 						/* Move right. */
 						wmove(this->fieldWin, 0, ++this->sbuch);
 						this->screenCol++;
-						if (this->efld[currPos]==-61 || this->efld[currPos]==-62) this->screenCol++;
+						if (this->efld[currPos]==-61 || this->efld[currPos]==-62|| this->efld[currPos]==-126) this->screenCol++;
 					}
 					break;
 				case KEY_BACKSPACE:
@@ -2818,10 +2824,10 @@ int SEntry::injectCDKEntry(chtype input)
 						bool success = FALSE;
 						if (input == KEY_BACKSPACE) {
 							--currPos;
-							if (this->efld[currPos-1]==-61||this->efld[currPos-1]==-62) --currPos;
+							if (this->efld[currPos-1]==-61||this->efld[currPos-1]==-62||this->efld[currPos-1]==-126) --currPos;
 						}
 						// .. und jetzt fuer den zu loeschenden
-						const int obuml=(this->efld[currPos]==-61||this->efld[currPos]==-62);
+						const int obuml=(this->efld[currPos]==-61||this->efld[currPos]==-62||this->efld[currPos]==-126);
 						if (currPos >= 0 && infoLength > 0) {
 							if (currPos < infoLength) {
 						// mvwprintw(this->parent,2,100,"!!!!!!!!!, currPos: %i, obuml: %i",currPos,obuml);
@@ -2843,7 +2849,7 @@ int SEntry::injectCDKEntry(chtype input)
                   this->sbuch--;
                 } else {
 									this->leftChar--;
-                  if (this->efld[this->leftChar-1]==-61||this->efld[this->leftChar-1]==-62) {
+                  if (this->efld[this->leftChar-1]==-61||this->efld[this->leftChar-1]==-62||this->efld[this->leftChar-1]==-126) {
 										this->leftChar--;
 										this->screenCol++;
 									}
@@ -2920,7 +2926,8 @@ int SEntry::injectCDKEntry(chtype input)
 						this->schreibl(umlaut[0]);
 						this->schreibl(umlaut[1]);
 						umlaut[1]=*umlaut=0;
-//						printf("\n%i %i %i\n",umlaut[0],umlaut[1],umlaut[2]);
+						mvwprintw(this->screen->window,5,2,"schreibe Umlaut: %s",umlaut);
+						//						printf("\n%i %i %i\n",umlaut[0],umlaut[1],umlaut[2]);
 //						printf("Sonderdruck Ende");
 					} else if (!*umlaut) {
 						(this->*callbfn)(input);
@@ -3004,10 +3011,10 @@ void SEntry::settoend()
     --i;
     if (sbuch<fieldWidth) {
       screenCol++;
-      if ((unsigned char)efld[i]!=194 && (unsigned char)efld[i]!=195) sbuch++;
+      if ((unsigned char)efld[i]!=194 && (unsigned char)efld[i]!=195&& (unsigned char)efld[i]!=130) sbuch++;
     } else {
       leftChar++;
-      if ((unsigned char)efld[i]!=194 && (unsigned char)efld[i]!=195) lbuch++;
+      if ((unsigned char)efld[i]!=194 && (unsigned char)efld[i]!=195&& (unsigned char)efld[i]!=130) lbuch++;
     }
   }
   if (sbuch>=fieldWidth && (sbuch+lbuch<max)) {
@@ -3053,7 +3060,7 @@ void SEntry::eraseCDKEntry()
 /*
  * This erases the file selector from the screen.
  */
-void ComboB::eraseObj() // eraseCDKFselect(/*CDKOBJS *object*/)
+void ComboB::eraseObj() // eraseCDKFselect(/*GObj *object*/)
 {
 	//   if (validCDKObject(object)) {
 	//      SFSelect *fselect =(SFSelect *)object;
@@ -3083,7 +3090,7 @@ void SAlphalist::eraseCDKAlphalist() // _eraseCDKAlphalist
 /*
  * This function erases the scrolling list from the screen.
  */
-void SScroll::eraseCDKScroll/*_eraseCDKScroll*/(/*CDKOBJS *object*/)
+void SScroll::eraseCDKScroll/*_eraseCDKScroll*/(/*GObj *object*/)
 {
 //   if (validCDKObject(object))
    {
@@ -3096,7 +3103,7 @@ void SScroll::eraseCDKScroll/*_eraseCDKScroll*/(/*CDKOBJS *object*/)
 /*
  * This calls refreshCDKScreen. (made consistent with widgets)
  */
-void CDKOBJS::drawCDKScreen()
+void GObj::drawCDKScreen()
 {
    screen->refreshCDKScreen();
 }
@@ -3119,7 +3126,7 @@ void SScreen::refreshCDKScreen(/*SScreen *cdkscreen*/)
 	 * can overlap, and the visible ones will always
 	 * be drawn after all the invisible ones are erased */
 	for (x = 0; x < objectCount; x++) {
-		CDKOBJS *obj = /*screen->*/object[x];
+		GObj *obj = /*screen->*/object[x];
 		if (obj) {
 			//		if (validObjType(obj, ObjTypeOf(obj))) KLA
 			if (obj->validObjType(obj->cdktype)) {
@@ -3135,7 +3142,7 @@ void SScreen::refreshCDKScreen(/*SScreen *cdkscreen*/)
 		}
 	}
 	for (x = 0; x < objectCount; x++) {
-		CDKOBJS *obj = /*screen->*/object[x];
+		GObj *obj = /*screen->*/object[x];
 		if (obj) {
 			//		if (validObjType (obj, ObjTypeOf (obj))) KLA
 			if (obj->validObjType(obj->cdktype)) {
@@ -3154,7 +3161,7 @@ void SScreen::refreshCDKScreen(/*SScreen *cdkscreen*/)
  * This sets the widgets box attribute.
  */
 /*
-void CDKOBJS::setBox(bool Box)
+void GObj::setBox(bool Box)
 {
 	obbox = Box;
 	borderSize = Box ? 1 : 0;
@@ -3198,11 +3205,11 @@ void SEntry::unfocusCDKEntry()
 	wrefresh(fieldWin);
 }
 
-void CDKOBJS::refreshDataCDK()
+void GObj::refreshDataCDK()
 {
 }
 
-void CDKOBJS::saveDataCDK()
+void GObj::saveDataCDK()
 {
 }
 
@@ -3251,7 +3258,7 @@ int SAlphalist::injectCDKAlphalist(chtype input)
 /*
  * This injects a single character into the file selector.
  */
-int SFSelect::injectCDKFselect(/*CDKOBJS *object, */chtype input)
+int SFSelect::injectCDKFselect(/*GObj *object, */chtype input)
 {
 	//   SFSelect *fselect =(SFSelect *)object;
 	const char *filename{""};
@@ -3677,7 +3684,7 @@ void SAlphalist::focusCDKAlphalist()
 	FocusObj(entryField);
 	MethodPtr(entryField,focusObj)(entryField);
 	((ObjPtr(entryField))->focusObj)(entryField);
-	(((CDKOBJS*)(entryField))->focusObj)(entryField);
+	(((GObj*)(entryField))->focusObj)(entryField);
 	entryField->focusObj(entryField);
 	*/
 	entryField->focusCDKEntry();
@@ -3703,7 +3710,7 @@ void SFSelect::unfocusCDKFileSelector()
 /*
  * Set data for preprocessing.
  */
-void CDKOBJS::setCDKObjectPreProcess(/*CDKOBJS *obj, */PROCESSFN fn, void *data)
+void GObj::setCDKObjectPreProcess(/*GObj *obj, */PROCESSFN fn, void *data)
 {
    preProcessFunction = fn;
    preProcessData = data;
@@ -3713,7 +3720,7 @@ void CDKOBJS::setCDKObjectPreProcess(/*CDKOBJS *obj, */PROCESSFN fn, void *data)
  * Set data for postprocessing.
  */
 /*
-void CDKOBJS::setCDKObjectPostProcess(PROCESSFN fn, void *data)
+void GObj::setCDKObjectPostProcess(PROCESSFN fn, void *data)
 {
    postProcessFunction = fn;
    postProcessData = data;
@@ -3851,7 +3858,7 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 	};
 	/* *INDENT-ON* */
 
-//	::CDKOBJS();
+//	::GObj();
 //	objnr=aktent;
 //	setBox(Box);
 	/* Translate the label char *pointer to a chtype pointer. */
@@ -4162,7 +4169,7 @@ SScroll::SScroll(SScreen *cdkscreen,
 			 vector<string> *plistp,
 			 bool numbers,
 			 chtype phighlight,
-			 CDKOBJS *pmutter,
+			 GObj *pmutter,
 			 bool obBox,
 			 bool pshadow)
 		: SScroll_basis(cdkscreen,cdkscreen->window,obBox,pshadow,vSCROLL,/*pAcceptsFocus*/1,/*phasFocus*/1,/*pisVisible*/1)
@@ -4191,7 +4198,7 @@ SScroll::SScroll(SScreen *cdkscreen,
    /* *INDENT-ON* */
 
 //   if ((scrollp = newCDKObject(SScroll, &my_funcs)) == 0) { destroyCDKObject(scrollp); return(0); }
-//	::CDKOBJS();
+//	::GObj();
 //   setBox(Box);
 
    /*
@@ -4436,7 +4443,7 @@ void SScroll::drawCDKScrollList(bool Box)
 /*
  * This injects a single character into the widget.
  */
-int SScroll::injectCDKScroll(/*CDKOBJS *object, */chtype input)
+int SScroll::injectCDKScroll(/*GObj *object, */chtype input)
 {
 	//   SScroll *myself =(SScroll *)object;
 //	CDKSCROLLER *widget =(CDKSCROLLER *)this;
@@ -4548,17 +4555,17 @@ int SScroll::injectCDKScroll(/*CDKOBJS *object, */chtype input)
 	}
 	scroll_FixCursorPosition();
 	resultData.valueInt = ret;
-	return (ret != -1) // unknownInt);
+	return (ret != -1); // unknownInt);
 } // static int _injectCDKScroll
 
 /*
  * This sets the background attribute of the widget.
  */
-void CDKOBJS::setBKattrObj(/*CDKOBJS *object, */chtype attrib)
+void GObj::setBKattrObj(/*GObj *object, */chtype attrib)
 {
 //   if (object) {
 //      SLabel *widget =(SLabel *)object;
-//      wbkgd(this->win, attrib);
+      wbkgd(this->win, attrib);
 //   }
 }
 
@@ -4641,7 +4648,7 @@ int chtstr::rauskopier(chtype **ziel)
 void SScreen::destroyCDKScreenObjects()
 {
 	for (int x = 0; x < this->objectCount; x++) {
-		CDKOBJS *obj = this->object[x];
+		GObj *obj = this->object[x];
 		if (obj) {
 			int before = this->objectCount;
 			//		if (validObjType(obj, ObjTypeOf(obj))) KLA
@@ -4693,7 +4700,7 @@ void SScreen::eraseCDKScreen()
 //	int objectCount = this->objectCount;
 	/* We just call the drawObject function. */
 	for (int x = 0; x < objectCount; x++) {
-		CDKOBJS *obj = this->object[x];
+		GObj *obj = this->object[x];
 		if (obj) {
 			//		if (validObjType(obj, ObjTypeOf(obj))) KLA
 			if (obj->validObjType(obj->cdktype)) {
@@ -4705,7 +4712,7 @@ void SScreen::eraseCDKScreen()
 	wrefresh (this->window);
 }
 
-void CDKOBJS::eraseObj()
+void GObj::eraseObj()
 {
 }
 
@@ -4780,7 +4787,7 @@ SLabel::SLabel(SScreen *cdkscreen,
 					 vector<string> mesg,
 		       bool obBox,
 		       bool pshadow
-		): CDKOBJS(cdkscreen,cdkscreen->window,obBox,pshadow,vLABEL,/*pAcceptsFocus*/0,/*phasFocus*/0,/*pisVisible*/1)
+		): GObj(cdkscreen,cdkscreen->window,obBox,pshadow,vLABEL,/*pAcceptsFocus*/0,/*phasFocus*/0,/*pisVisible*/1)
 	,xpos(xplace),ypos(yplace), rows(mesg.size()),boxWidth(INT_MIN),boxHeight(rows+2*borderSize)
 {
 //	shadow=pshadow;
@@ -4793,7 +4800,7 @@ SLabel::SLabel(SScreen *cdkscreen,
    //int xpos             = xplace;
    //int ypos             = yplace;
 
-//	::CDKOBJS();
+//	::GObj();
    if (rows <= 0) {
       destroyCDKObject(/*label*/);
       return /*(0)*/;
@@ -4932,7 +4939,7 @@ void SLabel::setCDKLabelMessage(/*SLabel *label, */ std::vector<std::string> s_i
 /*
  * This sets the background attribute of the widget.
  */
-void SLabel::setBKattrLabel(/*CDKOBJS *object, */chtype attrib)
+void SLabel::setBKattrLabel(/*GObj *object, */chtype attrib)
 {
 //   if (object) {
 //      SLabel *widget =(SLabel *)object;
@@ -4943,7 +4950,7 @@ void SLabel::setBKattrLabel(/*CDKOBJS *object, */chtype attrib)
 /*
  * This draws the label widget.
  */
-void SLabel::drawCDKLabel(/*CDKOBJS *object, */bool Box GCC_UNUSED)
+void SLabel::drawCDKLabel(/*GObj *object, */bool Box GCC_UNUSED)
 {
 //   SLabel *label =(SLabel *)object;
    /* Is there a shadow? */
@@ -4971,7 +4978,7 @@ void SLabel::drawCDKLabel(/*CDKOBJS *object, */bool Box GCC_UNUSED)
 /*
  * This erases the label widget.
  */
-void SLabel::eraseCDKLabel(/*CDKOBJS *object*/)
+void SLabel::eraseCDKLabel(/*GObj *object*/)
 {
 //   if (validCDKObject(object)) {
 //      SLabel *label =(SLabel *)object;
@@ -4983,7 +4990,7 @@ void SLabel::eraseCDKLabel(/*CDKOBJS *object*/)
 /*
  * This moves the label field to the given location.
  */
-void SLabel::moveCDKLabel(/*CDKOBJS *object,*/
+void SLabel::moveCDKLabel(/*GObj *object,*/
 			   int xplace,
 			   int yplace,
 			   bool relative,
@@ -5030,7 +5037,7 @@ void SLabel::moveCDKLabel(/*CDKOBJS *object,*/
 /*
  * This destroys the label object pointer.
  */
-void SLabel::destroyCDKLabel(/*CDKOBJS *object*/)
+void SLabel::destroyCDKLabel(/*GObj *object*/)
 {
 //   if (object) {
 //      SLabel *label =(SLabel *)object;
@@ -5129,7 +5136,7 @@ void SScreen::popupLabelAttrib(/*SScreen *screen, */
 /*
  * This sets the background color of the widget.
  */
-void CDKOBJS::setCDKObjectBackgroundColor(/*CDKOBJS *obj, */const char *color)
+void GObj::setCDKObjectBackgroundColor(/*GObj *obj, */const char *color)
 {
    int junk1, junk2;
    /* Make sure the color isn't null. */
@@ -5146,12 +5153,12 @@ void CDKOBJS::setCDKObjectBackgroundColor(/*CDKOBJS *obj, */const char *color)
 }
 
 
-void CDKOBJS::setULcharObj(chtype ch)
+void GObj::setULcharObj(chtype ch)
 {
 	ULChar=ch;
 }
 
-void CDKOBJS::drawObj(bool Box)
+void GObj::drawObj(bool Box)
 {
 }
 void SEntry::drawObj(bool Box)
@@ -5172,7 +5179,7 @@ void SAlphalist::drawObj(bool Box)
 	drawCDKAlphalist(Box);
 }
 
-//void CDKOBJS::setBKattrObj(chtype attrib) { wbkgd(win, attrib); }
+//void GObj::setBKattrObj(chtype attrib) { wbkgd(win, attrib); }
 
 void SLabel::setBKattrObj(chtype attrib)
 {
@@ -5206,7 +5213,7 @@ void SScroll::setBKattrObj(chtype attrib)
 /*
  * This draws the file selector widget.
  */
-void SFSelect::drawCDKFselect(/*CDKOBJS *object, */bool Box GCC_UNUSED, bool obmitscroller/*=0*/)
+void SFSelect::drawCDKFselect(/*GObj *object, */bool Box GCC_UNUSED, bool obmitscroller/*=0*/)
 {
 //   SFSelect *fselect =(SFSelect *)object;
 
@@ -5976,7 +5983,7 @@ SFSelect::SFSelect(
 	/* *INDENT-ON* */
 
 //	if ((fselect = newCDKObject(SFSelect, &my_funcs)) == 0) return (0);
-//	::CDKOBJS();
+//	::GObj();
 //	objnr=aktent;
 //	setBox(Box);
 
@@ -6132,7 +6139,7 @@ SDialog::SDialog(SScreen *cdkscreen,
 			 bool pseparator,
 			 bool obBox,
 			 bool pshadow
-		): CDKOBJS(cdkscreen,cdkscreen->window,obBox,pshadow,vDIALOG,/*pAcceptsFocus*/1,/*phasFocus*/1,/*pisVisible*/1)
+		): GObj(cdkscreen,cdkscreen->window,obBox,pshadow,vDIALOG,/*pAcceptsFocus*/1,/*phasFocus*/1,/*pisVisible*/1)
 	,separator(pseparator),highlight(phighlight)
 {
    /* *INDENT-EQLS* */
@@ -6146,7 +6153,7 @@ SDialog::SDialog(SScreen *cdkscreen,
 //   int temp             = 0;
    int buttonadj        = 0;
 
-//	 ::CDKOBJS();
+//	 ::GObj();
 //	 setBox(obBox);
    boxHeight = mesg->size() + 2 * borderSize + separator + 1;
 
@@ -6275,7 +6282,7 @@ int SDialog::activateCDKDialog(/*CDKDIALOG *dialog, */chtype *actions)
 /*
  * This injects a single character into the dialog widget.
  */
-int SDialog::injectCDKDialog(/*CDKOBJS *object, */chtype input)
+int SDialog::injectCDKDialog(/*GObj *object, */chtype input)
 {
 	/* *INDENT-EQLS* */
 	//   CDKDIALOG *widget = (CDKDIALOG *)object;
@@ -6368,7 +6375,7 @@ int SDialog::injectCDKDialog(/*CDKOBJS *object, */chtype input)
 /*
  * This moves the dialog field to the given location.
  */
-void SDialog::moveCDKDialog(/*CDKOBJS *object,*/
+void SDialog::moveCDKDialog(/*GObj *object,*/
 			    int xplace,
 			    int yplace,
 			    bool relative,
@@ -6413,7 +6420,7 @@ void SDialog::moveCDKDialog(/*CDKOBJS *object,*/
 /*
  * This function draws the dialog widget.
  */
-void SDialog::drawCDKDialog(/*CDKOBJS *object, */bool obBox)
+void SDialog::drawCDKDialog(/*GObj *object, */bool obBox)
 {
    /* Is there a shadow? */
    if (this->shadowWin) {
@@ -6439,7 +6446,7 @@ void SDialog::drawCDKDialog(/*CDKOBJS *object, */bool obBox)
 /*
  * This function destroys the dialog widget.
  */
-void SDialog::destroyCDKDialog(/*CDKOBJS *object*/)
+void SDialog::destroyCDKDialog(/*GObj *object*/)
 {
 	//   if (object != 0) {
 	/* Clean up the windows. */
@@ -6456,7 +6463,7 @@ void SDialog::destroyCDKDialog(/*CDKOBJS *object*/)
 /*
  * This function erases the dialog widget from the screen.
  */
-void SDialog::eraseCDKDialog(/*CDKOBJS *object*/)
+void SDialog::eraseCDKDialog(/*GObj *object*/)
 {
 	//   if (validCDKObject (object)) {
 	eraseCursesWindow(win);
@@ -6516,7 +6523,7 @@ bool SDialog::getCDKDialogBox()
 /*
  * This sets the background attribute of the widget.
  */
-void SDialog::setBKattrDialog(/*CDKOBJS *object, */chtype attrib)
+void SDialog::setBKattrDialog(/*GObj *object, */chtype attrib)
 {
 	wbkgd(this->win, attrib);
 }
@@ -6554,17 +6561,17 @@ void SDialog::drawCDKDialogButtons(/*CDKDIALOG *dialog*/)
 			this->buttonLen[this->currentButton]);
 }
 
-void SDialog::focusCDKDialog(/*CDKOBJS *object*/)
+void SDialog::focusCDKDialog(/*GObj *object*/)
 {
    drawCDKDialog(/*widget, ObjOf (widget)->*/obbox);
 }
 
-void SDialog::unfocusCDKDialog(/*CDKOBJS *object*/)
+void SDialog::unfocusCDKDialog(/*GObj *object*/)
 {
    drawCDKDialog(/*this, ObjOf (widget)->*/obbox);
 }
 
-CDKOBJS::CDKOBJS(
+GObj::GObj(
 			 SScreen* pscreen
 			 ,WINDOW* pparent
 			 ,bool obBox
@@ -6607,7 +6614,7 @@ SScroll_basis::SScroll_basis(
 			 ,bool pisVisible
 			 ,int objnr/*=-1*/
 			 )
-	: CDKOBJS(pscreen,pparent,obBox,pshadow,pcdktype,pacceptsFocus,phasFocus,pisVisible,objnr/*=-1*/)
+	: GObj(pscreen,pparent,obBox,pshadow,pcdktype,pacceptsFocus,phasFocus,pisVisible,objnr/*=-1*/)
 {
 }
 
@@ -6628,7 +6635,7 @@ ComboB::ComboB(
 		,chtype pfillerChar
 		,int objnr/*=-1*/
 		)
-	:CDKOBJS(pscreen,pparent,obBox,pshadow,pcdktype,pacceptsFocus,phasFocus,pisVisible,objnr),xpos(xplace),ypos(yplace)
+	:GObj(pscreen,pparent,obBox,pshadow,pcdktype,pacceptsFocus,phasFocus,pisVisible,objnr),xpos(xplace),ypos(yplace)
 	 ,height(height),width(width),highlight(phighlight),fillerChar(pfillerChar)
 	 ,boxHeight(setWidgetDimension(parentHeight, height, 0))
 	 ,boxWidth(setWidgetDimension(parentWidth, width, 0))
@@ -6647,4 +6654,98 @@ ComboB::ComboB(
 	 */
 //	boxWidth = setWidgetDimension(parentWidth, width, 0);
 
+}
+
+CDKBINDING::CDKBINDING(BINDFN f,void* d)
+	:bindFunction(f),bindData(d)
+{
+}
+
+CDKBINDING::CDKBINDING()
+{
+}
+
+void GObj::focusObj()
+{
+}
+
+void GObj::unfocusObj()
+{
+}
+
+int GObj::injectObj(chtype)
+{
+	return 0;
+}
+void SEntry::focusObj()
+{
+	focusCDKEntry();
+}
+void SEntry::unfocusObj()
+{
+	unfocusCDKEntry();
+}
+void SEntry::eraseObj()
+{
+	eraseCDKEntry();
+}
+void SEntry::destroyObj()
+{
+	this->~SEntry();
+}
+int SEntry::injectObj(chtype ch)
+{
+	return injectCDKEntry(ch);
+}
+void SScroll::destroyObj()
+{
+	this->~SScroll();
+}
+void SScroll::eraseObj()
+{
+	eraseCDKScroll();
+}
+int SScroll::injectObj(chtype ch)
+{
+	return injectCDKScroll(ch);
+}
+void SScroll::focusObj()
+{
+	focusCDKScroll();
+}
+void SScroll::unfocusObj()
+{
+	unfocusCDKScroll();
+}
+void SFSelect::destroyObj()
+{
+	this->~SFSelect();
+}
+int SFSelect::injectObj(chtype ch)
+{
+	return injectCDKFselect(ch);
+}
+void SFSelect::focusObj()
+{
+	focusCDKFileSelector();
+}
+void SFSelect::unfocusObj()
+{
+	unfocusCDKFileSelector();
+}
+	 void SAlphalist::destroyObj()
+{
+	this->~SAlphalist();
+}
+int SAlphalist::injectObj(chtype ch)
+{
+	return injectCDKAlphalist(ch);
+}
+void SAlphalist::focusObj()
+{
+	focusCDKAlphalist();
+}
+void SAlphalist::unfocusObj()
+{
+	unfocusCDKAlphalist();
 }
