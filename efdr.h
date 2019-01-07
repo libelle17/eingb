@@ -390,9 +390,9 @@ union CDKDataUnion {
 /*
  * This injects a single character into the menu widget.
  */
-//#define injectCDKObject(o,c,type)      (MethodOf(o)->injectObj    (ObjOf(o),c) ? ResultOf(o).value ## type : unknown ## type)
-// #define injectCDKObject(/*o,*/c,type)      (injectObj    (/*ObjOf(o),*/c) ? ResultOf(this).value ## type : unknown ## type)
-// #define injectCDKMenu(/*obj,*/input) injectCDKObject(/*obj,*/input,Int)
+//#define injectSObject(o,c,type)      (MethodOf(o)->injectObj    (ObjOf(o),c) ? ResultOf(o).value ## type : unknown ## type)
+// #define injectSObject(/*o,*/c,type)      (injectObj    (/*ObjOf(o),*/c) ? ResultOf(this).value ## type : unknown ## type)
+// #define injectSMenu(/*obj,*/input) injectSObject(/*obj,*/input,Int)
 
 /*
  * This enumerated typedef lists all of the CDK widget types.
@@ -480,6 +480,7 @@ struct CDKBINDING {
 EDisplayType char2DisplayType (const char *string);
 bool isHiddenDisplayType (EDisplayType type);
 int filterByDisplayType (EDisplayType type, chtype input);
+int isSonder(const unsigned char was);
 
 // typedef struct _all_objects { struct _all_objects *link; GObj *object; } ALL_OBJECTS;
 typedef bool(*CHECK_KEYCODE)(int /* keyCode */, int /* functionKey */);
@@ -663,6 +664,10 @@ struct GObj
 	 int parentWidth;      
 	 int parentHeight;     
 	 int objnr=-1; // Objektnr bei Eingabefeld, wird wahrscheinlich nicht gebraucht
+	 chtype *actions;
+	 long actionzahl,actionnr;
+	 bool hoerauf;
+	 chtype holcht();
 	 GObj(
 			 SScreen* pscreen
 			 ,WINDOW* pparent
@@ -794,15 +799,15 @@ struct SEntry:GObj
 	 int		labelumlz; // GSchade
    int		titleAdj;
    chtype	fieldAttr;
-   int		fieldWidth;
+   size_t		fieldWidth;
 	 std::string efld/*info*/;
    int		infoWidth;
-   int		screenCol;
-   int    sbuch; // GSchade
-   int		leftChar;
-   int    lbuch; // GSchade
-   int		min;
-   int		max;
+   int		screenCol; // Offset auf efld, wo der Cursor sitzt
+   size_t    sbuch; // GSchade: Abstand des Cursors vom linken Eingabefeldrand
+   int		leftChar; // Offset des links ersten sichtbaren Zeichens in efld
+   size_t    lbuch; // GSchade: Zahl der links vom linken Eingabefeldrand befindlichen Buchstaben
+   size_t		minlen;
+   size_t		maxlen;
    int		boxWidth;
    int		boxHeight;
    void settoend(); // GSchade
@@ -850,15 +855,14 @@ struct SEntry:GObj
 	 void drawCDKEntry(bool);
 	 void drawObj(bool Box);
 	 void cleanCDKEntry();
-	 int injectCDKEntry(chtype);
+	 int injectSEntry(chtype);
 	 int injectObj(chtype ch);
 	 void setCDKEntryValue(std::string newValue);
 //	 void setCDKEntryValue(const char *newValue);
 	 void eraseCDKEntry();
 	 void eraseObj();
-	 const char* activateCDKEntry(chtype *actions,int *Zweitzeichen/*=0*/,int *Drittzeichen/*=0*/, int obpfeil/*=0*/);
+	 const char *activateCDKEntry(/*SFSelect *fselect, */chtype *actions,int (&WeitereZc)[6],int obpfeil=0);
 	 void moveCDKEntry(int,int,bool,bool);
-	 void CDKEntryCallBack(chtype character);
 	 void (SEntry::*callbfn)(chtype character)=NULL;
 }; // struct SEntry:GObj
 // typedef struct SEntry CDKENTRY;
@@ -957,7 +961,7 @@ struct SScroll:SScroll_basis
 	int createCDKScrollItemList(bool numbers,std::vector<std::string> *plistp);
 	bool allocListItem(int which, 
                                                       			int number, const char *value);
-	int injectCDKScroll(/*GObj *object, */chtype input);
+	int injectSScroll(/*GObj *object, */chtype input);
 	int injectObj(chtype ch);
 	void drawCDKScrollList(bool Box);
 	int activateCDKScroll(chtype *actions);
@@ -1046,13 +1050,13 @@ struct SFSelect:ComboB
 		);
 	~SFSelect();
 	void moveCDKFselect(/*GObj *object, */int xplace, int yplace, bool relative, bool refresh_flag);
-	const char *activateCDKFselect(/*SFSelect *fselect, */chtype *actions,int *Zweitzeichen/*=0*/,int *Drittzeichen/*=0*/,int obpfeil/*=0*/);
+	 const char *activateCDKFselect(/*SFSelect *fselect, */chtype *actions,int (&WeitereZc)[6],int obpfeil=0);
 	void destroyObj();
 //	void eraseCDKFselect();
 	 void drawCDKFselect(bool Box, bool obmitscroller=0);
 	 void drawObj(bool Box);
 	 void setPWD(/*SFSelect *fselect*/);
-	 int injectCDKFselect(chtype input);
+	 int injectSFselect(chtype input);
 	 int injectObj(chtype ch);
 	 void setCDKFselect(/*SFSelect *fselect, */const char *directory, chtype fieldAttrib, chtype filler, chtype highlight, 
 			 const char *dirAttribute, const char *fileAttribute, const char *linkAttribute, const char *sockAttribute, bool Box GCC_UNUSED);
@@ -1076,6 +1080,7 @@ struct SAlphalist:ComboB
 			 const char *title,
 			 const char *label,
 			 std::vector<std::string> *plistp,
+			 size_t maxlen,
 			 chtype fillerChar,
 			 chtype highlight,
 			 bool Box,
@@ -1090,8 +1095,8 @@ struct SAlphalist:ComboB
 	 void drawCDKAlphalist(bool Box GCC_UNUSED, bool obmitscroller=0);
 	 void drawObj(bool Box);
 	 void moveCDKAlphalist(int xplace, int yplace, bool relative, bool refresh_flag);
-	 const char* activateCDKAlphalist(chtype *actions,int *Zweitzeichen/*=0*/,int *Drittzeichen/*=0*/,int obpfeil/*=0*/);
-	 int injectCDKAlphalist(chtype input);
+	 const char* activateCDKAlphalist(chtype *actions,int (&WeitereZc)[6],int obpfeil=0);
+	 int injectSAlphalist(chtype input);
 	 int injectObj(chtype ch);
 //	 void eraseCDKAlphalist();
 //	 void eraseObj(); //{eraseCDKAlphalist();}
@@ -1216,7 +1221,7 @@ struct SDialog:GObj {
 			bool		shadow);
 //	~SDialog();
 	int activateCDKDialog(/*CDKDIALOG *dialog, */chtype *actions);
-	int injectCDKDialog(/*GObj *object, */chtype input);
+	int injectSDialog(/*GObj *object, */chtype input);
 	void moveCDKDialog(/*GObj *object,*/
 			int xplace,
 			int yplace,

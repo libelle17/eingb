@@ -19,6 +19,19 @@ int isChar(const int c)
 {
 	return c>=0 && c<KEY_MIN;
 }
+int isSonder(const unsigned char was)
+{
+	switch (was) {
+		case 194:
+		case 195:
+		case 197:
+			return 1;
+		case 226: // für €
+			return 2;
+	}
+	return 0;
+}
+
 
 void chtstr::gibaus() const
 { 
@@ -590,27 +603,23 @@ void writeChtypeAttrib(WINDOW *window,
 	if (align == HORIZONTAL) {
 		/* Draw the message on a horizontal axis. */
 		display = MINIMUM(diff, getmaxx(window) - xpos);
-		int altumlz=0;
+		int altumlz{0};
 		for (int x = 0; x < display; x++) {
 			// GSchade 25.9.18
-			if (1&&((int)(unsigned char)string[x+start]==194||(int)(unsigned char)string[x+start]==195||(int)(unsigned char)string[x+start]==130)) {
+			const int wieSonder{isSonder(string[x+start])};
+			if (1&&wieSonder) { // ((int)(unsigned char)string[x+start]==194||(int)(unsigned char)string[x+start]==195||(int)(unsigned char)string[x+start]==226))
 				//			printf("Buchstabe: %c %i\r\n",(unsigned char)string[x+start], (int)(unsigned char)string[x+start]);
-				char ausg[3];
-				*ausg=string[x+start];
-				ausg[1]=string[x+start+1];
-				ausg[2]=0;
-//				ausg[0]='o';
-//				ausg[1]=0;
-//				chtype testa;
-//				wattr_get(window)
-
+				char ausg[6]{0}; // mindestens 4
+				for(int i=0;i<wieSonder+1;i++) {
+					ausg[i]=string[x+start+i];
+				}
 //				const chtype attrib=COLOR_PAIR(2)|A_REVERSE;//A_REVERSE|COLOR_GREEN;
 //				printf("String: %s, Farbe: %lu\n\r",ausg,attrib/*window->_attrs*/);
 				wattron(window,string[x+start]); 
 				mvwprintw(window,ypos,xpos+x-altumlz,"%s",ausg);
 				wattroff(window,string[x+start]); 
 				x++;
-				altumlz++;
+				altumlz+=wieSonder;
 			} else {
 //				printf("Buchstabe: %c, Farbe: %lu\n\r",(unsigned char)string[x+start],attr);
 				(void)mvwaddch(window, ypos, xpos + x-altumlz, string[x + start] |attr);
@@ -1287,12 +1296,12 @@ GObj* SScreen::handleMenu(/*SScreen *screen, */GObj *menu, GObj *oldobj)
 				break;
 			case KEY_ESC:
 				/* cleanup the menu */
-				//				((CDKMENU*)menu)->injectCDKMenu(/*(CDKMENU *)menu, */(chtype)key);
+				//				((CDKMENU*)menu)->injectSMenu(/*(CDKMENU *)menu, */(chtype)key);
 				menu->injectObj((chtype)key);
 				done = TRUE;
 				break;
 			default:
-//				done =(menu->injectCDKMenu(/*(CDKMENU *)menu, */(chtype)key) >= 0);
+//				done =(menu->injectSMenu(/*(CDKMENU *)menu, */(chtype)key) >= 0);
 				if (menu->injectObj(chtype(key))) {
 					done=menu->resultData.valueInt;
 				} else {
@@ -1735,13 +1744,13 @@ void SFSelect::moveCDKFselect(/*GObj *object,*/
  * from the keyboard, and when it's done, it fills the entry info
  * element of the structure with what was typed.
  */
-const char *SFSelect::activateCDKFselect(/*SFSelect *fselect, */chtype *actions,int *Zweitzeichen/*=0*/,int *Drittzeichen/*=0*/,int obpfeil/*=0*/)
+const char *SFSelect::activateCDKFselect(/*SFSelect *fselect, */chtype *actions,int (&WeitereZc)[6],int obpfeil/*=0*/)
 {
 #ifndef false
    /* Draw the widget. */
    drawCDKFselect(obbox,/*obmitscroller*/1);
    /* Activate the widget. */
-   const char *ret = entryField->activateCDKEntry(actions,Zweitzeichen,Drittzeichen,obpfeil);
+   const char *ret = entryField->activateCDKEntry(actions,WeitereZc,obpfeil);
    /* Copy the exit type from the entry field. */
 //   copyExitType(this, this->entryField);
 	 exitType=entryField->exitType;
@@ -1762,7 +1771,7 @@ const char *SFSelect::activateCDKFselect(/*SFSelect *fselect, */chtype *actions,
 			input =(chtype)getchCDKObject(/*ObjOf(fselect->entryField), */&functionKey);
 			/* Inject the character into the widget. */
 			// if (input==KEY_BTAB) return ret;
-			ret=injectCDKFselect(input)?resultData.valueString:0/*unknownString*/;
+			ret=injectSFselect(input)?resultData.valueString:0/*unknownString*/;
 			if (this->exitType != vEARLY_EXIT) {
 				return ret;
 			}
@@ -1771,7 +1780,7 @@ const char *SFSelect::activateCDKFselect(/*SFSelect *fselect, */chtype *actions,
 		int length = chlen(actions);
 		/* Inject each character one at a time. */
 		for (int x = 0; x < length; x++) {
-			ret=injectCDKFselect(actions[x])?resultData.valueString:0/*unknownString*/;
+			ret=injectSFselect(actions[x])?resultData.valueString:0/*unknownString*/;
 			if (this->exitType != vEARLY_EXIT) {
 				return ret;
 			}
@@ -2256,11 +2265,6 @@ int GObj::getchCDKObject(bool *functionKey)
 }
 
 
-void SEntry::CDKEntryCallBack(chtype character)
-{
-	SEntry::schreibl(character);
-}
-
 /*
  * This is a generic character parser for the entry field. It is used as a
  * callback function, so any personal modifications can be made by creating
@@ -2268,45 +2272,60 @@ void SEntry::CDKEntryCallBack(chtype character)
  */
 void SEntry::schreibl(chtype character)
 {
-  static bool altobuml=0;
-  const bool obuml=(character==(chtype)-61||character==(chtype)-62||character==(chtype)-126);
+  static int altobuml{0},uraltobuml{0},verbote{0};
+//  const bool obuml=(character==(chtype)-61||character==(chtype)-62||character==(chtype)-30);
+  const int obuml{isSonder(character)};
   int plainchar;
-  if (altobuml||obuml) plainchar=character; else plainchar=filterByDisplayType(dispType, character);
+  if (uraltobuml==2||altobuml||obuml) plainchar=character; else plainchar=filterByDisplayType(dispType, character);
 	// wenn Ende erreicht wuerde, dann von 2-Buchstabenlaengen langen Buchstaben keinen schreiben
 //	const int slen=strlen(efld.c_str());
-	const int slen=efld.length();
-  if (plainchar == ERR ||(obuml&&slen>max-2)||(altobuml&&slen>max-2&&efld[slen-1]!=-61&&efld[slen-1]!=-62&&efld[slen-1]!=-126)||(slen >= max)) {
+	const size_t slen{efld.length()};
+//	for(int i=0;i<5;i++) mvwprintw(screen->window,1+i,1,"%i:                                                                                ",i);
+  if (obuml==2 && slen>maxlen-3) verbote=3;
+	else if (obuml==1 && slen>maxlen-2) verbote=2;
+	else if (slen>maxlen-1) verbote=1;
+  if (plainchar == ERR ||verbote) {
+		verbote--;
+		// (altobuml&&slen>maxlen-1-obuml&&!isSonder(efld[slen-obuml])/*efld[slen-1]!=-61&&efld[slen-1]!=-62&&efld[slen-1]!=-30*/))
     Beep();
+		mvwprintw(screen->window,1+(obuml?1:altobuml?2:uraltobuml?3:5),1,"Beep!: slen: %i, obuml: %i, altobuml: %i, uraltobuml: %i    ",slen,obuml,altobuml,uraltobuml);
   } else {
     /* Update the screen and pointer. */
-    if (sbuch != fieldWidth - 1) {
-			efld.insert(efld.begin()+screenCol+leftChar,(char)plainchar);
+		efld.insert(efld.begin()+screenCol+leftChar,(char)plainchar);
+		static size_t rupos=1;
+		mvwprintw(screen->window,rupos % 40,125,"%i: lC: %i, sC: %i, lC+sC: %i, plC: %i, plC: %c ",rupos,leftChar,screenCol,leftChar+screenCol, plainchar,(unsigned char)plainchar);
+		rupos++;
+		mvwprintw(screen->window,rupos % 40,125,"                                                                  ");
+		if (sbuch != fieldWidth - 1) {
       screenCol++;
-      if (!obuml) sbuch++;
+//      if (!obuml) sbuch++;
+			sbuch+=1-obuml;
     } else {
       /* Update the character pointer. */
-      size_t temp = slen;
-			efld.resize(temp+1);
-      efld[temp] =(char)plainchar;
-			if (obuml) {
-				screenCol++;
-			} else {
+//			efld.resize(slen+1);
+//      efld[slen] =(char)plainchar;
+//			efld+=(char)plainchar;
+//			if (obuml) {
+//				screenCol+=obuml;
+//			} else {
         /* Do not update the pointer if it's the last character */
-        if ((int)(temp + 1) < max) {
-          lbuch++;
-          if (efld[leftChar]==-61||efld[leftChar]==-62||efld[leftChar]==-126) {
-						leftChar++;
-						screenCol--;
+//        if (slen + 1 < maxlen) {
+					const int wieweit{isSonder(efld[leftChar])};
+//					leftChar+=wieweit;
+//					screenCol-=wieweit;
+					if (!altobuml && uraltobuml!=2) { // nur beim ersten angegebenen Durchlauf leftChar und lbuch erhöhen
+						leftChar+=1+wieweit;
+						lbuch++;
 					}
-          leftChar++;
-        }
-      }
+//        }
+//      }
     }
     /* Update the entry field. */
-    if (!obuml) {
+    if (!obuml&&altobuml!=2) {
       zeichneFeld();
     }
   }
+	uraltobuml=altobuml;
   altobuml=obuml;
 }
 
@@ -2316,47 +2335,47 @@ void SEntry::schreibl(chtype character)
 void SEntry::zeichneFeld()
 {
 	// setlocale(LC_ALL,"");
-	int x = 0;
 	/* Set background color and attributes of the entry field */
 	wbkgd(fieldWin, fieldAttr);
 	/* Draw in the filler characters. */
-	(void)mvwhline(fieldWin, 0, x, filler | fieldAttr, fieldWidth);
+	(void)mvwhline(fieldWin, 0, 0/*x*/, filler | fieldAttr, fieldWidth);
 	/* If there is information in the field. Then draw it in. */
-//	if (!efld.empty()) {
+//	if (!efld.empty()) KLA
 	if (1) {
-//		const int infoLength =(int)strlen(efld.c_str());
-		const int infoLength = efld.length();
+		const size_t efldLength{efld.length()};
 		/* Redraw the field. */
 		if (isHiddenDisplayType(dispType)) {
-			for (x = leftChar; x < infoLength; x++) {
+			for (size_t x = leftChar; x < efldLength; x++) {
 				(void)mvwaddch(fieldWin, 0, x - leftChar, hidden | fieldAttr);
 			}
 		} else {
-			if (0) {
-				char ausgabe[infoLength-leftChar+1];
-				memcpy(ausgabe,&efld[leftChar],infoLength-leftChar);
-				ausgabe[infoLength-leftChar]=0;
-			} else if (0) {
 				/*
-				mvwprintw(parent,1,1,"x:%i,len:%i,fwidth:%i,max:%i,lChar:%i,lbuch:%i,sCol:%i,sbuch:%i,info:%s   ",x,infoLength,fieldWidth,max,leftChar,lbuch,screenCol,sbuch,info);
-				for (x = leftChar; x < infoLength; x++) {
+			if (0) {
+				char ausgabe[efldLength-leftChar+1];
+				memcpy(ausgabe,&efld[leftChar],efldLength-leftChar);
+				ausgabe[efldLength-leftChar]=0;
+			} else if (0) {
+				mvwprintw(parent,1,1,"x:%i,len:%i,fwidth:%i,maxlen:%i,lChar:%i,lbuch:%i,sCol:%i,sbuch:%i,info:%s   ",x,efldLength,fieldWidth,maxlen,leftChar,lbuch,screenCol,sbuch,info);
+				for (x = leftChar; x < efldLength; x++) {
 					mvwprintw(parent,2+x,2,"x:%i, info[x]:%i  ",x,info[x]);
 				}
-				mvwprintw(parent,2+infoLength,2,"                            ");
-				mvwprintw(parent,2+infoLength+1,2,"                            ");
-				*/
+				mvwprintw(parent,2+efldLength,2,"                            ");
+				mvwprintw(parent,2+efldLength+1,2,"                            ");
 				wrefresh(parent); // gleichbedeutend: wrefresh(obj.screen->window);
 			}
-			size_t aktumlz=0;
-			for (x = leftChar; x < infoLength; x++) {
-				if (efld[x]==-61 || efld[x]==-62|| efld[x]==-126) {
-					char ausgb[3]={0};
-					ausgb[0]=efld[x];
-					ausgb[1]=efld[x+1];
+				*/
+			size_t aktumlz{0};
+			for (size_t x = leftChar; x < efldLength; x++) {
+				const int wieSonder{isSonder(efld[x])};
+				if (wieSonder) { // (efld[x]==-61 || efld[x]==-62|| efld[x]==-30)
+					char ausg[6]{0}; // mindestens 4
+					for(int i=0;i<wieSonder+1;i++) {
+						ausg[i]=efld[x+i];
+					}
 					//GSchade: Hier Umlautausgabe
-					mvwprintw(fieldWin,0,x-leftChar-aktumlz,ausgb);
-					x++;
-					aktumlz++;
+					mvwprintw(fieldWin,0,x-leftChar-aktumlz,ausg);
+					x+=wieSonder;
+					aktumlz+=wieSonder;
 				} else {
 					(void)mvwaddch(fieldWin, 0, x - leftChar-aktumlz,(unsigned char)efld[x] | fieldAttr);
 				}
@@ -2429,9 +2448,8 @@ SEntry::SEntry(SScreen *cdkscreen,
 		labelp=new chtstr(labelstr,&labelLen,&junk,highnr);
 		// GSchade Anfang
 		for(int i=0;labelp->getinh()[i];i++) {
-			if ((int)((unsigned char)labelp->getinh()[i])==194 ||(int)((unsigned char)labelp->getinh()[i])==195||(int)((unsigned char)labelp->getinh()[i])==130) {
-				labelumlz++;
-			}
+			labelumlz+=isSonder(labelp->getinh()[i]);
+				// ((int)((unsigned char)labelp->getinh()[i])==194 ||(int)((unsigned char)labelp->getinh()[i])==195||(int)((unsigned char)labelp->getinh()[i])==226) 
 		}
 		// GSchade Ende
 		boxWidth += labelLen;
@@ -2448,8 +2466,7 @@ SEntry::SEntry(SScreen *cdkscreen,
 	 */
 	boxWidth = MINIMUM(boxWidth, parentWidth);
 	boxHeight = MINIMUM(boxHeight, parentHeight);
-	fieldWidth = MINIMUM(fieldWidth,
-			boxWidth - labelLen +labelumlz - 2 * borderSize);
+	fieldWidth = MINIMUM(fieldWidth, (size_t)boxWidth - labelLen +labelumlz - 2 * borderSize);
 
 	/* Rejustify the x and y positions if we need to. */
 	alignxy(cdkscreen->window, &xpos, &ypos, boxWidth, boxHeight);
@@ -2503,14 +2520,14 @@ SEntry::SEntry(SScreen *cdkscreen,
 			sbuch=0;
 			leftChar              = 0;
 			lbuch=0;
-			min                   = minp;
-			max                   = maxp;
+			minlen                   = minp;
+			maxlen                   = maxp;
 			//				boxWidth              = boxWidth;
 			//				boxHeight             = boxHeight;
 			//				initExitType(this);
 			exitType =vNEVER_ACTIVATED;
 			dispType              = dispTypep;
-			callbfn            = &SEntry::CDKEntryCallBack;
+			callbfn            = &SEntry::schreibl;
 
 			/* Do we want a shadow? */
 			if (pshadow) {
@@ -2526,27 +2543,43 @@ SEntry::SEntry(SScreen *cdkscreen,
 	//	return (entry);
 } // SEntry::SEntry
 
+chtype GObj::holcht()
+{
+//	bool functionKey;
+	chtype input;
+	if (actionzahl) {
+		if (actionnr==actionzahl) {
+			hoerauf=1;
+		} else {
+			input=actions[actionnr++];
+		}
+	} else {
+		input=getcCDKObject(/*&functionKey*/);
+	}
+	return input;
+}
+
 
 /*
  * This means you want to use the given entry field. It takes input
  * from the keyboard, and when its done, it fills the entry info
  * element of the structure with what was typed.
  */
-const char* SEntry::activateCDKEntry(chtype *actions,int *Zweitzeichen/*=0*/,int *Drittzeichen/*=0*/, int obpfeil/*=0*/)
+const char* SEntry::activateCDKEntry(chtype *pactions,int (&WeitereZc)[6], int obpfeil/*=0*/)
 {
-	chtype input = 0;
-	bool functionKey;
-	const char *ret = 0;
-	static int zweit,dritt;
-	if (!Zweitzeichen) Zweitzeichen=&zweit; // Schutz vor Speicherplatzverletzung
-	if (!Drittzeichen) Drittzeichen=&dritt;
+	chtype input{0};
+	const char *ret{0};
 	/* Draw the widget. */
 	drawCDKEntry(/*entry, ObjOf(entry)->*/obbox);
-	if (!actions) {
+	hoerauf=0;
+	actionnr=0;
+	actions=pactions;
+	if (actions) actionzahl=chlen(actions); else actionzahl=0;
+//	if (!actions) KLA
 		for (;;) {
 			//static int y=2;
-			*Zweitzeichen=0;
-			input = (chtype)getchCDKObject(&functionKey);
+			*WeitereZc=0;
+			input = holcht(); // (chtype)getchCDKObject(&functionKey);
 			// GSchade Anfang //=Return
 			if (input==KEY_ENTER) { // 343, oktal: 0527, in curses.h
 	// 3.1.19: bei Return (343) pruefen, ob Teil von Alphalist oder FSelect, ob Schalter zur Anzeige der Auswahlen (zeichnescroll) eingestellt; 
@@ -2556,9 +2589,9 @@ const char* SEntry::activateCDKEntry(chtype *actions,int *Zweitzeichen/*=0*/,int
 					if (mutter->cdktype==vALPHALIST) {
 						((ComboB*)mutter)->zeichnescroll=0;
 						// muss, wenn nicht gleich wieder auf Return gedrückt wird, wieder auf 1 gesetzt werden
-						*Zweitzeichen=-12;
+						*WeitereZc=-12;
 					} else if (mutter->cdktype==vFSELECT) {
-						int iret{((SFSelect*)mutter)->injectCDKFselect(/*GObj *object, */input)};
+						int iret{((SFSelect*)mutter)->injectSFselect(/*GObj *object, */input)};
 						ret =iret?resultData.valueString:0;
 						if (((SFSelect*)mutter)->exitType) {
 							((ComboB*)mutter)->zeichnescroll=0;
@@ -2566,7 +2599,7 @@ const char* SEntry::activateCDKEntry(chtype *actions,int *Zweitzeichen/*=0*/,int
 							((ComboB*)mutter)->zeichnescroll=1;
 						}
 						//					exitType = vNORMAL;
-						*Zweitzeichen=-12;
+						*WeitereZc=-12;
 						return ret;
 					}
 				}
@@ -2575,23 +2608,27 @@ const char* SEntry::activateCDKEntry(chtype *actions,int *Zweitzeichen/*=0*/,int
           ((ComboB*)mutter)->zeichnescroll=1;
 				}
 				if (input==27) {
-					*Zweitzeichen =(chtype)getchCDKObject(&functionKey);
-					if (*Zweitzeichen==194||*Zweitzeichen==195||*Zweitzeichen==130) {
-						*Drittzeichen =(chtype)getchCDKObject(&functionKey);
-					} else if (*Zweitzeichen=='+') {
+					*WeitereZc = holcht(); // (chtype)getchCDKObject(&functionKey);
+					const int wieSonder{isSonder(*WeitereZc)};
+					if (wieSonder) { // (*Zweitzeichen==194||*Zweitzeichen==195||*Zweitzeichen==226)
+						for(int i=0;i<wieSonder;) {
+							++i;
+							WeitereZc[i] = holcht(); // (chtype)getchCDKObject(&functionKey);
+						}
+					} else if (*WeitereZc=='+') {
 						// Vervollständigen
 						if (mutter->cdktype==vALPHALIST) {
 							completeWordCB(mutter->cdktype, 0, (ComboB*)mutter, 0);
 						}
 					}
 				} else if (input==9||(obpfeil && input==KEY_DOWN)) {
-					*Zweitzeichen=-9;
+					*WeitereZc=-9;
 				} else if (input==KEY_BTAB||(obpfeil && input==KEY_UP)) {
-					*Zweitzeichen=-8;
+					*WeitereZc=-8;
 				} else if (input==KEY_NPAGE) {
-					*Zweitzeichen=-10;
+					*WeitereZc=-10;
 				} else if (input==KEY_PPAGE) {
-					*Zweitzeichen=-11;
+					*WeitereZc=-11;
 				}
 			}
 //		if (0) {
@@ -2607,8 +2644,8 @@ const char* SEntry::activateCDKEntry(chtype *actions,int *Zweitzeichen/*=0*/,int
 			//mvwprintw(entry->parent,1,60,"info:%s -> ",entry->info);
 			// GSchade Ende
 			/* Inject the character into the widget. */
-//			ret = injectCDKEntry(entry, input);
-			ret=injectCDKEntry(input)?resultData.valueString:0/*unknownString*/;
+//			ret = injectSEntry(entry, input);
+			ret=injectSEntry(input)?resultData.valueString:0/*unknownString*/;
 			// GSchade Anfang
       /*
 			mvwprintw(entry->parent,1,80,"info:%s ",entry->info);
@@ -2620,24 +2657,26 @@ const char* SEntry::activateCDKEntry(chtype *actions,int *Zweitzeichen/*=0*/,int
       drawCDKEntry(/*entry, ObjOf(entry)->*/obbox);
       // GSchade Ende
 
-			if (this->exitType != vEARLY_EXIT||*Zweitzeichen==-8||*Zweitzeichen==-9||*Zweitzeichen==-10||*Zweitzeichen==-11) {
+			if (this->exitType != vEARLY_EXIT||*WeitereZc==-8||*WeitereZc==-9||*WeitereZc==-10||*WeitereZc==-11) {
 //					mvwprintw(entry->parent,3,2,"Zweitzeichen: %i         , Drittzeichen: %i     ",*Zweitzeichen,*Drittzeichen);
 				return ret;
 			}
 //			mvwprintw(entry->parent,3,2,"kein Zweitzeichen");
 		}
-	} else {
-		int length = chlen(actions);
-		/* Inject each character one at a time. */
+		/*
+	KLZ else KLA
+		int length{chlen(actions)};
+		// Inject each character one at a time.
 		for (int x = 0; x < length; x++) {
 //					mvwprintw(entry->parent,4,2,"vor inject 2");
-//			ret = injectCDKEntry(entry, actions[x]);
-			ret = injectCDKEntry(actions[x])?resultData.valueString:0/*unknownString*/;
+//			ret = injectSEntry(entry, actions[x]);
+			ret = injectSEntry(actions[x])?resultData.valueString:0; //unknownString
 			if (this->exitType != vEARLY_EXIT) {
 				return ret;
 			}
 		}
-	}
+	KLZ
+	*/
 	/* Make sure we return the correct info. */
 	if (this->exitType == vNORMAL) {
 		return this->efld.c_str();
@@ -2650,12 +2689,12 @@ const char* SEntry::activateCDKEntry(chtype *actions,int *Zweitzeichen/*=0*/,int
 /*
  * This activates the file selector.
  */
-const char* SAlphalist::activateCDKAlphalist(chtype *actions,int *Zweitzeichen/*=0*/,int *Drittzeichen/*=0*/,int obpfeil/*=0*/)
+const char* SAlphalist::activateCDKAlphalist(chtype *actions,int (&WeitereZc)[6],int obpfeil/*=0*/)
 {
    /* Draw the widget. */
    drawCDKAlphalist(obbox,/*obmitscroller*/1);
    /* Activate the widget. */
-   const char *ret = entryField->activateCDKEntry(actions,Zweitzeichen,Drittzeichen,obpfeil);
+   const char *ret = entryField->activateCDKEntry(actions,WeitereZc,obpfeil);
    /* Copy the exit type from the entry field. */
 //   copyExitType(this, this->entryField);
 	 exitType=entryField->exitType;
@@ -2698,40 +2737,30 @@ void SEntry::drawCDKEntry(bool Box)
 /*
  * This injects a single character into the widget.
  */
-int SEntry::injectCDKEntry(chtype input)
+int SEntry::injectSEntry(chtype input)
 {
 //	SEntry *widget =(SEntry *)object;
-	int ppReturn = 1;
-	const char *ret = 0/*unknownString*/;
-	bool complete = FALSE;
-	static char umlaut[3]={0};
-	const int inpint=input;
-	static int zahl{0};
-	static chtype altinput{0};
-	mvwprintw(this->screen->window,2,2,"%i injectCDKEntry %c %i          ",zahl-1,altinput,altinput);
-	mvwprintw(this->screen->window,3,2,"%i injectCDKEntry %c %i          ",zahl++,input,input);
-	altinput=input;
-	screen->refreshCDKScreen(); // 21.12.18: Übeltäter, schreibt Listeneinträge an falsche Stellen
-	if (inpint==194 || inpint==195 || inpint==130) {
-//		printf("Eintrag: %i\n",inpint);
-		mvwprintw(this->screen->window,4,2,"schreibe Umlaut");
-		*umlaut=inpint;
-		umlaut[1]=0;
-	} else if ((unsigned char)*umlaut==194 ||(unsigned char)*umlaut==195||(unsigned char)*umlaut==130) {
-//		printf("Folgezeichen: %i\n",inpint);
-		//printf("%c (%i)\n",inpint,inpint);
-		mvwprintw(this->screen->window,4,2,"schrieb  Umlaut");
-		umlaut[1]=inpint;
-	} else {
-		mvwprintw(this->screen->window,4,2,"               ");
-//		printf("sonstiges Zeichen: %i\n",inpint);
-		umlaut[1]=*umlaut=0;
-	}
+	int ppReturn{1};
+	const char *ret{0}/*unknownString*/;
+	bool complete{FALSE};
+	static char umlaut[6]{0}; // mindestens 4
+	const int inpint{(int)input};
+//	static chtype altinput{0},uraltinput{0},ururaltinput{0};
+//	static int zahl{0};
+//	mvwprintw(screen->window,1,2,"%i injectSEntry %c %i          ",zahl-3,ururaltinput,ururaltinput);
+//	mvwprintw(screen->window,2,2,"%i injectSEntry %c %i          ",zahl-2,uraltinput,uraltinput);
+//	mvwprintw(screen->window,3,2,"%i injectSEntry %c %i          ",zahl-1,altinput,altinput);
+//	mvwprintw(screen->window,4,2,"%i injectSEntry %c %i          ",zahl++,input,input);
+//	ururaltinput=uraltinput;
+//	uraltinput=altinput;
+//	altinput=input;
+//	screen->refreshCDKScreen(); // 21.12.18: Übeltäter, schreibt Listeneinträge an falsche Stellen
 	/* Set the exit type. */
 	setExitType(0);
 	/* Refresh the widget field. */
-	this->zeichneFeld();
+	zeichneFeld();
 	/* Check if there is a pre-process function to be called. */
+	size_t/*int*/ currPos = screenCol + leftChar;
 	if (preProcessFunction) {
 		ppReturn = (preProcessFunction)(vENTRY,
 				this,
@@ -2747,117 +2776,131 @@ int SEntry::injectCDKEntry(chtype input)
 				exitType = earlyExit;
 			complete = TRUE;
 		} else {
-//			const int infoLength = (int)strlen(this->efld.c_str());
-			const size_t infoLength=efld.length();
-			size_t/*int*/ currPos = this->screenCol + this->leftChar;
+			const size_t efldLength=efld.length();
+//			size_t/*int*/ currPos = screenCol + leftChar; // zum untenstehenden Debuggen nach oben verschoben
 			switch (input) {
 				case KEY_UP:
 				case KEY_DOWN:
 					Beep();
 					break;
 				case KEY_HOME:
-					this->leftChar = 0;
-					this->lbuch=0;
-					this->screenCol = 0;
-					this->sbuch=0;
-					this->zeichneFeld();
-					mvwprintw(this->parent,3,3,"Key_home");
-					wrefresh(this->win);
+					leftChar = 0;
+					lbuch=0;
+					screenCol = 0;
+					sbuch=0;
+					zeichneFeld();
+//					mvwprintw(parent,3,3,"Key_home");
+					wrefresh(win);
 					//refreshCDKScreen(allgscr);
 					break;
 				case CDK_TRANSPOSE:
-					if (currPos >= infoLength - 1) {
+					if (currPos >= efldLength - 1) {
 						Beep();
 					} else {
-						const char holder = this->efld[currPos];
-						this->efld[currPos] = this->efld[currPos + 1];
-						this->efld[currPos + 1] = holder;
-						this->zeichneFeld();
+						const char holder{efld[currPos]};
+						efld[currPos] = efld[currPos + 1];
+						efld[currPos + 1] = holder;
+						zeichneFeld();
 					}
 					break;
 				case KEY_END:
-					this->settoend();
-					this->zeichneFeld();
+					settoend();
+					zeichneFeld();
 					break;
 				case KEY_LEFT:
 					if (currPos <= 0) {
 						Beep();
-					} else if (!this->screenCol) {
+					} else if (!screenCol) {
 						/* Scroll left.  */
-						if (currPos>1) if (this->efld[currPos-2]==-61 || this->efld[currPos-2]==-62|| this->efld[currPos-2]==-126) this->leftChar--;
-						this->leftChar--;
-						this->lbuch--;
-						this->zeichneFeld();
+						if (currPos>1) {
+							if (isSonder(efld[currPos-3])==2) leftChar-=2;
+							else if (isSonder(efld[currPos-2])) leftChar--;
+						}
+						leftChar--;
+						lbuch--;
+						zeichneFeld();
 					} else {
 						/* Move left. */
-						wmove(this->fieldWin, 0, --this->sbuch);
-						this->screenCol--;
-						if (currPos>1) if (this->efld[currPos-2]==-61 || this->efld[currPos-2]==-62|| this->efld[currPos-2]==-126) this->screenCol--;
+						wmove(fieldWin, 0, --sbuch);
+						screenCol--;
+						if (currPos>2 && isSonder(efld[currPos-3])==2) screenCol-=2;
+						else if (currPos>1 && isSonder(efld[currPos-2])) screenCol--; 
 					}
 					break;
 				case KEY_RIGHT:
-					if (currPos >= infoLength || currPos>(size_t)this->max) {
+					if (currPos >= efldLength || currPos>(size_t)maxlen) {
 						Beep();
-					} else if (this->sbuch == this->fieldWidth - 1) {
+					} else if (sbuch == fieldWidth - 1) {
 						/* Scroll to the right. */
-						if (this->efld[this->leftChar]==-61 || this->efld[this->leftChar]==-62|| this->efld[this->leftChar]==-126) {
-							this->screenCol--;
-							this->leftChar++;
+						const int wieSonderleft{isSonder(efld[leftChar])};
+						if (wieSonderleft) { // (efld[leftChar]==-61 || efld[leftChar]==-62|| efld[leftChar]==-30)
+							screenCol--;
+							leftChar++;
+							if (wieSonderleft==2) {
+								screenCol--;
+								leftChar++;
+							}
 						}
-						this->leftChar++;
-						this->lbuch++;
-						if (this->efld[currPos]==-61 || this->efld[currPos]==-62|| this->efld[currPos]==-126) this->screenCol++;
-						this->zeichneFeld();
+						leftChar++;
+						lbuch++;
+						screenCol+=isSonder(efld[currPos]);
+						zeichneFeld();
 					} else {
 						/* Move right. */
-						wmove(this->fieldWin, 0, ++this->sbuch);
-						this->screenCol++;
-						if (this->efld[currPos]==-61 || this->efld[currPos]==-62|| this->efld[currPos]==-126) this->screenCol++;
+						wmove(fieldWin, 0, ++sbuch);
+						screenCol++;
+						screenCol+=isSonder(efld[currPos]);
 					}
 					break;
 				case KEY_BACKSPACE:
 				case KEY_DC:
-					if (this->dispType == vVIEWONLY) {
+					if (dispType == vVIEWONLY) {
 						Beep();
 					} else {
-						// mvwprintw(this->parent,1,100,"!!!!!!!!!, currPos: %i  ",currPos);
-						bool success = FALSE;
+						// mvwprintw(parent,1,100,"!!!!!!!!!, currPos: %i  ",currPos);
+						bool success{FALSE};
 						if (input == KEY_BACKSPACE) {
 							--currPos;
-							if (this->efld[currPos-1]==-61||this->efld[currPos-1]==-62||this->efld[currPos-1]==-126) --currPos;
+							if (isSonder(efld[currPos-2])==2) currPos-=2;
+							else if (isSonder(efld[currPos-1])) --currPos;
 						}
 						// .. und jetzt fuer den zu loeschenden
-						const int obuml=(this->efld[currPos]==-61||this->efld[currPos]==-62||this->efld[currPos]==-126);
-						if (currPos >= 0 && infoLength > 0) {
-							if (currPos < infoLength) {
-						// mvwprintw(this->parent,2,100,"!!!!!!!!!, currPos: %i, obuml: %i",currPos,obuml);
-								// wrefresh(this->parent);
+						const int obuml{isSonder(efld[currPos])};
+						if (currPos >= 0 && efldLength > 0) {
+							if (currPos < efldLength) {
+						// mvwprintw(parent,2,100,"!!!!!!!!!, currPos: %i, obuml: %i",currPos,obuml);
+								// wrefresh(parent);
 								efld.erase(currPos,1+obuml);
 								success = TRUE;
 							} else if (input == KEY_BACKSPACE) {
-								efld.resize(infoLength-1);
+								efld.resize(efldLength-1);
 								success = TRUE;
-                if (infoLength>1) if (obuml) 
-									efld.resize(infoLength-2);
+                if (efldLength>1) if (obuml) 
+									efld.resize(efldLength-2);
               }
 						}
 						if (success) {
 							if (input == KEY_BACKSPACE) {
-								if (this->screenCol > 0 && !this->lbuch) {
-									this->screenCol--;
-                  if (obuml) this->screenCol--;
-                  this->sbuch--;
+								if (screenCol > 0 && !lbuch) {
+									screenCol--;
+									screenCol-=obuml;
+                  sbuch--;
                 } else {
-									this->leftChar--;
-                  if (this->efld[this->leftChar-1]==-61||this->efld[this->leftChar-1]==-62||this->efld[this->leftChar-1]==-126) {
-										this->leftChar--;
-										this->screenCol++;
+									leftChar--;
+									const int wieSonderbs{isSonder(efld[leftChar-1])};
+									if (wieSonderbs) { 
+										leftChar--;
+										screenCol++;
+										if (wieSonderbs==2) {
+											leftChar--;
+											screenCol++;
+										}
 									}
-                  this->lbuch--;
-									if (obuml) this->screenCol--;
+									lbuch--;
+									screenCol-=obuml;
                 }
 							}
-							this->zeichneFeld();
+							zeichneFeld();
 						} else {
 							Beep();
 						}
@@ -2866,25 +2909,25 @@ int SEntry::injectCDKEntry(chtype input)
 				case KEY_ESC:
 					setExitType(input);
 					complete = TRUE;
-					mvwprintw(this->parent,2,2,"Key_esc");
+//					mvwprintw(parent,2,2,"Key_esc");
 					break;
 				case CDK_ERASE:
-					if (infoLength) {
+					if (efldLength) {
 						cleanCDKEntry();
-						this->zeichneFeld();
+						zeichneFeld();
 					}
 					break;
 				case CDK_CUT:
-					if (infoLength) {
+					if (efldLength) {
 						GPasteBuffer=efld;
 						cleanCDKEntry();
-						this->zeichneFeld();
+						zeichneFeld();
 					} else {
 						Beep();
 					}
 					break;
 				case CDK_COPY:
-					if (infoLength) {
+					if (efldLength) {
 						GPasteBuffer=efld;
 					} else {
 						Beep();
@@ -2893,14 +2936,14 @@ int SEntry::injectCDKEntry(chtype input)
 				case CDK_PASTE:
 					if (!GPasteBuffer.empty()) {
 						setCDKEntryValue(GPasteBuffer);
-						this->zeichneFeld();
+						zeichneFeld();
 					} else {
 						Beep();
 					}
 					break;
 				case KEY_TAB:
 				case KEY_ENTER:
-					if (infoLength >= (size_t)this->min) {
+					if (efldLength >= (size_t)minlen) {
 						setExitType(input);
 						ret = efld.c_str();
 						complete = TRUE;
@@ -2917,20 +2960,46 @@ int SEntry::injectCDKEntry(chtype input)
 					screen->refreshCDKScreen();
 					break;
 				default:
+	        int wieSonder{isSonder(inpint)};
+					/*
+	        static int ablehnenzahl{0};
+					long aktablz{(long)(efldLength+wieSonder-maxlen)};
+	        if (aktablz>0) ablehnenzahl+=aktablz;
+					if (ablehnenzahl-- >0) break;
+					*/
+
+					if (wieSonder) { // (inpint==194 || inpint==195 || inpint==226)
+						//		printf("Eintrag: %i\n",inpint);
+						//		mvwprintw(screen->window,5,2,"schreibe Umlaut");
+						memset(umlaut,0,SIZEOF(umlaut));
+						*umlaut=inpint;
+					} else if (isSonder(*umlaut) && !umlaut[1]) {
+						//		printf("Folgezeichen: %i\n",inpint);
+						//printf("%c (%i)\n",inpint,inpint);
+						//		mvwprintw(screen->window,5,2,"schrieb  Umlaut (1)");
+						umlaut[1]=inpint;
+					} else if (isSonder(*umlaut)==2 && !umlaut[2]) {
+						//		mvwprintw(screen->window,5,2,"schrieb  Umlaut (2)");
+						umlaut[2]=inpint;
+					} else {
+						//		mvwprintw(screen->window,5,2,"               ");
+						//		printf("sonstiges Zeichen: %i\n",inpint);
+						memset(umlaut,0,SIZEOF(umlaut));
+					}
 					// printf("%i %i %i\n",umlaut[0],umlaut[1],umlaut[2]);
 					if (umlaut[1]) {
 //						printf("Sonderdruck Anfang");
 //						setlocale(LC_ALL,"");
-			//			wprintw(this->fieldWin,"%s",umlaut);
-//			wprintw(this->fieldWin,"Achtung!");
-						this->schreibl(umlaut[0]);
-						this->schreibl(umlaut[1]);
-						umlaut[1]=*umlaut=0;
-						mvwprintw(this->screen->window,5,2,"schreibe Umlaut: %s",umlaut);
+			//			wprintw(fieldWin,"%s",umlaut);
+//			wprintw(fieldWin,"Achtung!");
+						schreibl(umlaut[0]);
+						schreibl(umlaut[1]);
+						if (umlaut[2]) schreibl(umlaut[2]);
+						memset(umlaut,0,SIZEOF(umlaut));
 						//						printf("\n%i %i %i\n",umlaut[0],umlaut[1],umlaut[2]);
 //						printf("Sonderdruck Ende");
 					} else if (!*umlaut) {
-						(this->*callbfn)(input);
+						(this->*callbfn)(input); // auch schreibl
 					}
 					break;
 			}
@@ -2945,8 +3014,18 @@ int SEntry::injectCDKEntry(chtype input)
 	}
 	if (!complete) setExitType(0);
 	resultData.valueString = ret;
+	mvwprintw(screen->window,1,1,"leftChar: %i, lbuch: %i, screenCol: %i, sbuch: %i, efld.length(): %i, currPos: %i    ",leftChar,lbuch,screenCol,sbuch,efld.length(),currPos);
+//	mvwprintw(screen->window,2,1,"umlaut: %i %i %i %i (%c %c %c %c)",umlaut[0],umlaut[1],umlaut[2],umlaut[3],umlaut[0],umlaut[1],umlaut[2],umlaut[3]);
+	for(size_t i=0;i<30;i++) {
+		if (i<efld.length()) {
+			mvwprintw(screen->window,i+1,100,"%i: %i %i %c   ",i,efld[i],(unsigned char)efld[i],efld[i]);
+		} else {
+			mvwprintw(screen->window,i+1,100,"%i:                ",i);
+		}
+	}
+	screen->refreshCDKScreen(); // 21.12.18: Übeltäter, schreibt Listeneinträge an falsche Stellen
 	return (ret != 0/*unknownString*/);
-} // int SEntry::injectCDKEntry(chtype input)
+} // int SEntry::injectSEntry(chtype input)
 
 /*
  * This removes the old information in the entry field and keeps the
@@ -2956,7 +3035,7 @@ void SEntry::setCDKEntryValue(string newValue)
 {
 	/* OK, erase the old value, and copy in the new value. */
 	efld=newValue;
-	//			if (max>efld.length()) efld.resize(max);
+	//			if (maxlen>efld.length()) efld.resize(maxlen);
 	this->settoend();
 }
 /*
@@ -2999,8 +3078,8 @@ void SEntry::setCDKEntry(
 		bool Box GCC_UNUSED)
 {
 	setCDKEntryValue(value);
-	min=pmin;
-	max=pmax;
+	minlen=pmin;
+	maxlen=pmax;
 }
 
 
@@ -3011,13 +3090,15 @@ void SEntry::settoend()
     --i;
     if (sbuch<fieldWidth) {
       screenCol++;
-      if ((unsigned char)efld[i]!=194 && (unsigned char)efld[i]!=195&& (unsigned char)efld[i]!=130) sbuch++;
+			sbuch+=1-isSonder(efld[i]);
+      // if (!isSonder(efld[i])) sbuch++; // ((unsigned char)efld[i]!=194 && (unsigned char)efld[i]!=195&& (unsigned char)efld[i]!=226) sbuch++;
     } else {
       leftChar++;
-      if ((unsigned char)efld[i]!=194 && (unsigned char)efld[i]!=195&& (unsigned char)efld[i]!=130) lbuch++;
+			lbuch+=1-isSonder(efld[i]);
+      // if (!isSonder(efld[i])) lbuch++; // ((unsigned char)efld[i]!=194 && (unsigned char)efld[i]!=195&& (unsigned char)efld[i]!=226) lbuch++;
     }
   }
-  if (sbuch>=fieldWidth && (sbuch+lbuch<max)) {
+  if (sbuch>=fieldWidth && (sbuch+lbuch<maxlen)) {
     leftChar++;
 		lbuch++;
     screenCol--;
@@ -3038,7 +3119,9 @@ void SEntry::cleanCDKEntry()
 	(void)mvwhline(fieldWin, 0, 0, this->filler, fieldWidth);
 	/* Reset some variables. */
 	this->screenCol = 0;
+	sbuch=0;
 	this->leftChar = 0;
+	lbuch=0;
 	/* Refresh the entry field. */
 	wrefresh(fieldWin);
 }  
@@ -3230,21 +3313,21 @@ void GObj::saveDataCDK()
 void ComboB::injectMyScroller(chtype key)
 {
 	SaveFocus(this);
-	scrollField->injectCDKScroll(key);
+	scrollField->injectSScroll(key);
 	RestoreFocus(this);
 }
 
 /*
  * This injects a single character into the alphalist.
  */
-int SAlphalist::injectCDKAlphalist(chtype input)
+int SAlphalist::injectSAlphalist(chtype input)
 {
 //   SAlphalist *alphalist =(SAlphalist *)object;
    const char *ret;
    /* Draw the widget. */
    drawCDKAlphalist(obbox);
    /* Inject a character into the widget. */
-	 ret=entryField->injectCDKEntry(input)?entryField->resultData.valueString:0/*unknownString*/;
+	 ret=entryField->injectSEntry(input)?entryField->resultData.valueString:0/*unknownString*/;
 	 /* Copy the exit type from the entry field. */
 //   copyExitType(this, this->entryField);
 	 exitType=entryField->exitType;
@@ -3258,14 +3341,14 @@ int SAlphalist::injectCDKAlphalist(chtype input)
 /*
  * This injects a single character into the file selector.
  */
-int SFSelect::injectCDKFselect(/*GObj *object, */chtype input)
+int SFSelect::injectSFselect(/*GObj *object, */chtype input)
 {
 	//   SFSelect *fselect =(SFSelect *)object;
 	const char *filename{""};
 	bool complete{FALSE};
 	/* Let the user play. */
 	if (entryField) {
-	 if (entryField->injectCDKEntry(/*this->entryField, */input)) 
+	 if (entryField->injectSEntry(/*this->entryField, */input)) 
 		 filename=entryField->resultData.valueString;
   }
 	/* Copy the entry field exitType to the fileselector. */
@@ -3614,8 +3697,7 @@ int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UNUSED, v
    /* Ok, we found a match, is the next item similar? */
    int ret = strncmp(alphalist->plist[Index + 1].c_str(), entry->efld.c_str(),(size_t) wordLength);
 	 if (!ret) {
-		 int currentIndex = Index;
-
+		 int currentIndex{Index};
 		 while ((currentIndex<(int)alphalist->plist.size()) && (!strncmp(alphalist->plist[currentIndex].c_str(), entry->efld.c_str(),(size_t)wordLength))) {
 			 altWords.push_back(alphalist->plist[currentIndex++]);
 		 }
@@ -3653,8 +3735,8 @@ int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UNUSED, v
 		 /* Set the entry field to the selected value. */
 		 entry->setCDKEntry(
 				 alphalist->plist[Index+selected], // .c_str()
-				 entry->min,
-				 entry->max,
+				 entry->minlen,
+				 entry->maxlen,
 				 alphalist->obbox);
 		 /* Move the highlight bar down to the selected value. */
 		 for (int x = 0; x < selected; x++) {
@@ -3669,8 +3751,8 @@ int completeWordCB(EObjectType objectType GCC_UNUSED, void *object GCC_UNUSED, v
 		 /* Set the entry field with the found item. */
 		 entry->setCDKEntry(
 				 alphalist->plist[Index], // .c_str()
-				 entry->min,
-				 entry->max,
+				 entry->minlen,
+				 entry->maxlen,
 				 entry->obbox);
 		 entry->drawObj(alphalist->obbox);
 	 }
@@ -3748,16 +3830,9 @@ static int preProcessEntryField(EObjectType cdktype GCC_UNUSED, void
 	} else if (alphalist->isCDKObjectBind(input)) {
 		result = 1;		/* don't try to use this key in editing */
 	} else if ((isChar(input) &&
-				(isalnum((unsigned char)input) ||
-				 ispunct(input))) ||
-			input == KEY_BACKSPACE ||
-			input == KEY_DC) {
-		int Index, difference, absoluteDifference, x;
-		int currPos = (entry->screenCol + entry->leftChar);
-		string pattern;
-
-		pattern=entry->efld;
-
+				(isalnum((unsigned char)input) || ispunct(input))) || input == KEY_BACKSPACE || input == KEY_DC) {
+		int currPos {entry->screenCol + entry->leftChar};
+		string pattern{entry->efld};
 		if (input == KEY_BACKSPACE || input == KEY_DC) {
 			if (input == KEY_BACKSPACE)
 				--currPos;
@@ -3769,21 +3844,22 @@ static int preProcessEntryField(EObjectType cdktype GCC_UNUSED, void
 				 pattern.append(1,(char)input);
 				 } else {
 			 */
-			//mvwprintw(entry->screen->window,3,2,"preProcessEntryField,input: %c,crrPos: %i, pattern.length(): %i,screenCol: %i, leftChar: %i          ",input,currPos,pattern.length(),entry->screenCol, entry->leftChar);
+//mvwprintw(entry->screen->window,3,2,"preProcessEntryField,input: %c,crrPos: %i, pattern.length(): %i,screenCol: %i, leftChar: %i          ",input,currPos,pattern.length(),entry->screenCol, entry->leftChar);
 			pattern.insert(pattern.begin()+currPos,(char)input);
 		/*
 			 }
 		 */
 			// wrefresh(entry->screen->window);
 		}
+		int Index;
 		if (!strlen(pattern.c_str())) empty=TRUE;
 		else if ((Index = searchList(
 						&alphalist->plist,
 						pattern.c_str()
 						))>=0) {
 			/* *INDENT-EQLS* */
-			difference           = Index - scrollp->currentItem;
-			absoluteDifference   = abs(difference);
+			int difference{Index - scrollp->currentItem};
+			int absoluteDifference{abs(difference)};
 
 			/*
 			 * If the difference is less than zero, then move up.
@@ -3793,7 +3869,7 @@ static int preProcessEntryField(EObjectType cdktype GCC_UNUSED, void
 			 * index position.  Otherwise provide the nice scroll.
 			 */
 			if (absoluteDifference <= 10) {
-				for (x = 0; x < absoluteDifference; x++) {
+				for (int x = 0; x < absoluteDifference; x++) {
 					alphalist->injectMyScroller(
 							(chtype)((difference <= 0)
 								? KEY_UP
@@ -3829,6 +3905,7 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 			       const char *title,
 			       const char *label,
 						 vector<string> *plistp,
+						 size_t maxlen,
 			       chtype pfillerChar,
 			       chtype phighlight,
 			       bool obBox,
@@ -3901,7 +3978,7 @@ SAlphalist::SAlphalist(SScreen *cdkscreen,
 			getbegy(this->win),
 			title, label,
 			A_NORMAL, fillerChar,
-			vMIXED, tempWidth, 0, 512,
+			vMIXED, tempWidth, 0, maxlen,
 			obBox, FALSE
 			// GSchade Anfang
 			,this
@@ -4334,7 +4411,7 @@ int SScroll::activateCDKScroll(chtype *actions)
 			scroll_FixCursorPosition();
 			input = (chtype)this->getchCDKObject(&functionKey);
 			/* Inject the character into the widget. */
-			ret = this->injectCDKScroll(input);
+			ret = this->injectSScroll(input);
 			if (this->exitType != vEARLY_EXIT) {
 				return ret;
 			}
@@ -4343,7 +4420,7 @@ int SScroll::activateCDKScroll(chtype *actions)
 		int length = chlen(actions);
 		/* Inject each character one at a time. */
 		for (int i = 0; i < length; i++) {
-			ret = injectCDKScroll(actions[i]);
+			ret = injectSScroll(actions[i]);
 			if (this->exitType != vEARLY_EXIT)
 				return ret;
 		}
@@ -4357,8 +4434,8 @@ const int einrueck{1};
 void SScroll::drawCDKScrollCurrent()
 {
    /* Rehighlight the current menu item. */
-   int screenPos = this->itemPos[this->currentItem] - this->leftChar;
-   chtype highlight = /*HasFocusObj(this)*/hasFocus ? this->highlight : 
+   const int screenPos{itemPos[this->currentItem] - this->leftChar};
+   const chtype hilight = /*HasFocusObj(this)*/hasFocus ? this->highlight : 
 		 // Anfang G.Schade 2.10.18
 		 this->highlight
 		 /*A_NORMAL*/
@@ -4368,7 +4445,7 @@ void SScroll::drawCDKScrollCurrent()
 		      ((screenPos >= 0) ? screenPos : 0)+einrueck,
 		      this->currentHigh,
 					this->pitem[this->currentItem].getinh(),
-		      highlight,
+		      hilight,
 		      HORIZONTAL,
 		      (screenPos >= 0) ? 0 :(1 - screenPos),
 		      this->itemLen[this->currentItem]);
@@ -4383,7 +4460,7 @@ void SScroll::drawCDKScrollCurrent()
 void SScroll::drawCDKScrollList(bool Box)
 {
 	static int reihe{0};
-	int anzy{0};
+//	int anzy{0};
 	/* If the list is empty, don't draw anything. */
 	if (this->listSize > 0) {
 		/* Redraw the list */
@@ -4398,10 +4475,10 @@ void SScroll::drawCDKScrollList(bool Box)
 			int k = j + this->currentTop;
 			/* Draw the elements in the scroll list. */
 			if (k < this->listSize) {
-				int screenPos = itemPos[k]-leftChar; //  SCREENPOS(this, k);
+				const int screenPos{itemPos[k]-leftChar}; //  SCREENPOS(this, k);
 				/* Write in the correct line. */
 				// zeichnet alle, ohne das Aktuelle zu markieren
-				mvwprintw(parent,anzy++,90,"%i: cury: %i %s",reihe,listWin->_cury,pitem[k].chtype2Char());
+//				mvwprintw(parent,anzy++,90,"%i: cury: %i %s",reihe,listWin->_cury,pitem[k].chtype2Char());
 				writeChtype(this->listWin,
 						((screenPos >= 0) ? screenPos : 1)+einrueck,
 						ypos, 
@@ -4443,7 +4520,7 @@ void SScroll::drawCDKScrollList(bool Box)
 /*
  * This injects a single character into the widget.
  */
-int SScroll::injectCDKScroll(/*GObj *object, */chtype input)
+int SScroll::injectSScroll(/*GObj *object, */chtype input)
 {
 	//   SScroll *myself =(SScroll *)object;
 //	CDKSCROLLER *widget =(CDKSCROLLER *)this;
@@ -4556,7 +4633,7 @@ int SScroll::injectCDKScroll(/*GObj *object, */chtype input)
 	scroll_FixCursorPosition();
 	resultData.valueInt = ret;
 	return (ret != -1); // unknownInt);
-} // static int _injectCDKScroll
+} // static int _injectSScroll
 
 /*
  * This sets the background attribute of the widget.
@@ -5758,7 +5835,7 @@ static int completeFilenameCB(EObjectType objectType GCC_UNUSED,
 						break;
 					}
 					/* Inject the character into the entry field. */
-					fselect->entryField->injectCDKEntry(/*fselect->entryField,*/(chtype)plist[Index][baseChars]);
+					fselect->entryField->injectSEntry(/*fselect->entryField,*/(chtype)plist[Index][baseChars]);
 					baseChars++;
 				}
 			} else {
@@ -6259,7 +6336,7 @@ int SDialog::activateCDKDialog(/*CDKDIALOG *dialog, */chtype *actions)
 		for (;;) {
 			input = (chtype)getchCDKObject(/*ObjOf (this), */&functionKey);
 			/* Inject the character into the widget. */
-			ret = injectCDKDialog(/*this, */input);
+			ret = injectSDialog(/*this, */input);
 			if (this->exitType != vEARLY_EXIT) {
 				return ret;
 			}
@@ -6268,7 +6345,7 @@ int SDialog::activateCDKDialog(/*CDKDIALOG *dialog, */chtype *actions)
 		int length = chlen(actions);
 		/* Inject each character one at a time. */
 		for (int x = 0; x < length; x++) {
-			ret = injectCDKDialog(/*this, */actions[x]);
+			ret = injectSDialog(/*this, */actions[x]);
 			if (this->exitType != vEARLY_EXIT) {
 				return ret;
 			}
@@ -6282,7 +6359,7 @@ int SDialog::activateCDKDialog(/*CDKDIALOG *dialog, */chtype *actions)
 /*
  * This injects a single character into the dialog widget.
  */
-int SDialog::injectCDKDialog(/*GObj *object, */chtype input)
+int SDialog::injectSDialog(/*GObj *object, */chtype input)
 {
 	/* *INDENT-EQLS* */
 	//   CDKDIALOG *widget = (CDKDIALOG *)object;
@@ -6695,7 +6772,7 @@ void SEntry::destroyObj()
 }
 int SEntry::injectObj(chtype ch)
 {
-	return injectCDKEntry(ch);
+	return injectSEntry(ch);
 }
 void SScroll::destroyObj()
 {
@@ -6707,7 +6784,7 @@ void SScroll::eraseObj()
 }
 int SScroll::injectObj(chtype ch)
 {
-	return injectCDKScroll(ch);
+	return injectSScroll(ch);
 }
 void SScroll::focusObj()
 {
@@ -6723,7 +6800,7 @@ void SFSelect::destroyObj()
 }
 int SFSelect::injectObj(chtype ch)
 {
-	return injectCDKFselect(ch);
+	return injectSFselect(ch);
 }
 void SFSelect::focusObj()
 {
@@ -6739,7 +6816,7 @@ void SFSelect::unfocusObj()
 }
 int SAlphalist::injectObj(chtype ch)
 {
-	return injectCDKAlphalist(ch);
+	return injectSAlphalist(ch);
 }
 void SAlphalist::focusObj()
 {

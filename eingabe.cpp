@@ -193,7 +193,7 @@ int main(int argc, char **argv)
 	// static size_t maxh=maxy>maxhk?maxhk:maxy;
 	/* Start CDK colors. */
 	initCDKColor();
-	const int maxlen=100;
+	const int maxlen{50};
 	for(size_t aktent=0;aktent<maxhk;aktent++) {
 		bool nichtzaehl=0;
 		hk[aktent].highinr=0;
@@ -208,14 +208,13 @@ int main(int argc, char **argv)
 			else {
 				hk[aktent].highinr++;
 				if (hnr==hk[aktent].highnr) {
-					if ((unsigned char)hk[aktent].label[i]==194 ||(unsigned char)hk[aktent].label[i]==195||(unsigned char)hk[aktent].label[i]==130) {
+					if (isSonder(hk[aktent].label[i])) { // ((unsigned char)hk[aktent].label[i]==194 ||(unsigned char)hk[aktent].label[i]==195||(unsigned char)hk[aktent].label[i]==226) 
 						hk[aktent].buch=(unsigned char)hk[aktent].label[i]*256+(unsigned char)hk[aktent].label[i+1];
 					} else
 						hk[aktent].buch=(unsigned char)hk[aktent].label[i];
 					break;
-				}
-				else if ((unsigned char)hk[aktent].label[i]==194 ||(unsigned char)hk[aktent].label[i]==195||(unsigned char)hk[aktent].label[i]==130) {}
-				else hnr++;
+				} else if (isSonder(hk[aktent].label[i])) { // ((unsigned char)hk[aktent].label[i]==194 ||(unsigned char)hk[aktent].label[i]==195||(unsigned char)hk[aktent].label[i]==226) 
+				} else hnr++;
 			}
 		}
 //		mvwprintw(cdkscreen->window,18,aktent*10,"%i/%i",hk[aktent].highnr,hk[aktent].highinr);
@@ -225,7 +224,7 @@ int main(int argc, char **argv)
 			case auswfld:
 				hk[aktent].eingabef=
 					//newCDKAlphalist(cdkscreen,xpos,yabst+aktent,10,40,"",hk[aktent].label,(CDK_CSTRING*)userList,userSize,'.',A_REVERSE,0,0,hk[aktent].highinr);
-					new SAlphalist(cdkscreen,xpos,yabst+aktent,10,40,"",hk[aktent].label, &userList, '.',A_REVERSE,0,0,hk[aktent].highinr,aktent);
+					new SAlphalist(cdkscreen,xpos,yabst+aktent,10,20,"",hk[aktent].label, &userList, maxlen,'.',A_REVERSE,0,0,hk[aktent].highinr,aktent);
 				break;
 			case eingfld:
 				hk[aktent].eingabef=
@@ -257,9 +256,9 @@ int main(int argc, char **argv)
 	//setCDKEntry(hk[0].eingabef, argv[optind], 0, max, TRUE);
 
 	/* Activate the entry field. */
-	int Zweitzeichen=0,Drittzeichen=0;
 	while (1) {
-//		akteinbart=einb_direkt;
+		int WeitereZc[6]{0};
+		//		akteinbart=einb_direkt;
 		/* Draw the screen. */
 		// refreshCDKScreen(cdkscreen);
 		//zeichne(cdkscreen,Znr);
@@ -308,14 +307,14 @@ int main(int argc, char **argv)
 		switch (hk[Znr].obalph) {
 			case auswfld:
 //				akteinbart=einb_alphalist;
-				/*info=*/((SAlphalist*)hk[Znr].eingabef)->activateCDKAlphalist(/*(SAlphalist*)hk[Znr].eingabef, */0,&Zweitzeichen, &Drittzeichen,/*obpfeil*/0);
+				/*info=*/((SAlphalist*)hk[Znr].eingabef)->activateCDKAlphalist(/*(SAlphalist*)hk[Znr].eingabef, */0,WeitereZc,/*obpfeil*/0);
 				(((SAlphalist*)hk[Znr].eingabef)->scrollField)->eraseCDKScroll(/*((SAlphalist*)hk[Znr].eingabef)->scrollField*/);
 				break;
 			case eingfld:
-				/*info = */((SEntry*)hk[Znr].eingabef)->activateCDKEntry(/*hk[Znr].eingabef, */0,&Zweitzeichen, &Drittzeichen,/*obpfeil*/1);
+				/*info = */((SEntry*)hk[Znr].eingabef)->activateCDKEntry(/*hk[Znr].eingabef, */0,WeitereZc,/*obpfeil*/1);
 				break;
 			case dteifld:
-				/*info = */((SFSelect*)hk[Znr].eingabef)->activateCDKFselect(/*hk[Znr].eingabef, */0,&Zweitzeichen, &Drittzeichen,/*obpfeil*/0);
+				/*info = */((SFSelect*)hk[Znr].eingabef)->activateCDKFselect(/*hk[Znr].eingabef, */0,WeitereZc,/*obpfeil*/0);
 				break;
 		}
 		if (obende) break;
@@ -335,29 +334,29 @@ int main(int argc, char **argv)
 		//#ifdef richtig		 
 		//		mvwprintw(cdkscreen->window,3,60,"Zweitzeichen: %i (%c)",Zweitzeichen,Zweitzeichen);
 		refreshCDKWindow(cdkscreen->window);
-		if (Zweitzeichen==-9) {
+		if (WeitereZc[0]==-9) {
 			Znr++;
 			// Alt+Tab
 			// Seite nach unten
-		} else if (Zweitzeichen==-10) {
+		} else if (WeitereZc[0]==-10) {
 			Znr+=maxh-1;
-		} else if (Zweitzeichen==-8) {
+		} else if (WeitereZc[0]==-8) {
 			Znr--;
 			// Seite nach oben
-		} else if (Zweitzeichen==-11) {
+		} else if (WeitereZc[0]==-11) {
 			Znr-=maxh-1;
 			// Return gedrückt
-		} else if (Zweitzeichen==-12) {
+		} else if (WeitereZc[0]==-12) {
 			// Alt- +Buchstabe
 		} else {
 			//			mvwprintw(cdkscreen->window,1,30,"Zweitzeichen: %c",Zweitzeichen);
-			if (Zweitzeichen) /*(info && *info==27)*/ {
+			if (WeitereZc[0]) /*(info && *info==27)*/ {
 				for(int aktent=0;aktent<maxhk;aktent++) {
 					/*if (aktent<30)*/ 
 					//					mvwprintw(cdkscreen->window,(aktent+1+Znr)%maxhk+yabst,100,"-->(%c) %i" ,hk[(aktent+1+Znr)%maxhk].buch,hk[(aktent+1+Znr)%maxhk].buch);
 					refreshCDKWindow(cdkscreen->window);
-					if (Zweitzeichen==hk[(aktent+1+Znr)%maxhk].buch ||
-							((Zweitzeichen==194||Zweitzeichen==195||Zweitzeichen==130)&&Zweitzeichen*256+Drittzeichen==hk[(aktent+1+Znr)%maxhk].buch)) {
+					if (WeitereZc[0]==hk[(aktent+1+Znr)%maxhk].buch ||
+							(isSonder(WeitereZc[0])/*(Zweitzeichen==194||Zweitzeichen==195||Zweitzeichen==226)*/&& WeitereZc[0]*256+WeitereZc[1]==hk[(aktent+1+Znr)%maxhk].buch)) {
 						//						mvwprintw(cdkscreen->window,4,60,"buch: %c",hk[(aktent+1+Znr)%maxhk].buch);
 						refreshCDKWindow(cdkscreen->window);
 						Znr=(aktent+1+Znr)%maxhk;
