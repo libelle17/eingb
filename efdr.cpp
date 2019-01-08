@@ -2315,8 +2315,10 @@ void SEntry::schreibl(chtype character)
 //					screenCol-=wieweit;
 					if (!altobuml && uraltobuml!=2) { // nur beim ersten angegebenen Durchlauf leftChar und lbuch erhöhen
 						leftChar+=1+wieweit;
+						screenCol-=1+wieweit;
 						lbuch++;
 					}
+					screenCol++;
 //        }
 //      }
     }
