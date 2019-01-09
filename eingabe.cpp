@@ -193,7 +193,7 @@ int main(int argc, char **argv)
 	// static size_t maxh=maxy>maxhk?maxhk:maxy;
 	/* Start CDK colors. */
 	initCDKColor();
-	const int maxlen{50};
+	const int maxlen{12};
 	for(size_t aktent=0;aktent<maxhk;aktent++) {
 		bool nichtzaehl=0;
 		hk[aktent].highinr=0;

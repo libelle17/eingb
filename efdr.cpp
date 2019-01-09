@@ -2736,6 +2736,34 @@ void SEntry::drawCDKEntry(bool Box)
 	this->zeichneFeld();
 }
 
+void SEntry::keyright()
+{
+	const size_t currPos = screenCol + leftChar;
+	const size_t efldLength=efld.length();
+	if (currPos >= efldLength || currPos>(size_t)maxlen) {
+		Beep();
+	} else if (sbuch == fieldWidth - 1) {
+		/* Scroll to the right. */
+		const int wieSonderleft{isSonder(efld[leftChar])};
+		if (wieSonderleft) { // (efld[leftChar]==-61 || efld[leftChar]==-62|| efld[leftChar]==-30)
+			screenCol--;
+			leftChar++;
+			if (wieSonderleft==2) {
+				screenCol--;
+				leftChar++;
+			}
+		}
+		leftChar++;
+		lbuch++;
+		screenCol+=isSonder(efld[currPos]);
+		zeichneFeld();
+	} else {
+		/* Move right. */
+		wmove(fieldWin, 0, ++sbuch);
+		screenCol++;
+		screenCol+=isSonder(efld[currPos]);
+	}
+}
 /*
  * This injects a single character into the widget.
  */
@@ -2762,7 +2790,7 @@ int SEntry::injectSEntry(chtype input)
 	/* Refresh the widget field. */
 	zeichneFeld();
 	/* Check if there is a pre-process function to be called. */
-	size_t/*int*/ currPos = screenCol + leftChar;
+	size_t/*int*/ currPos{(size_t)(screenCol+leftChar)};
 	if (preProcessFunction) {
 		ppReturn = (preProcessFunction)(vENTRY,
 				this,
@@ -2830,29 +2858,7 @@ int SEntry::injectSEntry(chtype input)
 					}
 					break;
 				case KEY_RIGHT:
-					if (currPos >= efldLength || currPos>(size_t)maxlen) {
-						Beep();
-					} else if (sbuch == fieldWidth - 1) {
-						/* Scroll to the right. */
-						const int wieSonderleft{isSonder(efld[leftChar])};
-						if (wieSonderleft) { // (efld[leftChar]==-61 || efld[leftChar]==-62|| efld[leftChar]==-30)
-							screenCol--;
-							leftChar++;
-							if (wieSonderleft==2) {
-								screenCol--;
-								leftChar++;
-							}
-						}
-						leftChar++;
-						lbuch++;
-						screenCol+=isSonder(efld[currPos]);
-						zeichneFeld();
-					} else {
-						/* Move right. */
-						wmove(fieldWin, 0, ++sbuch);
-						screenCol++;
-						screenCol+=isSonder(efld[currPos]);
-					}
+					keyright();
 					break;
 				case KEY_BACKSPACE:
 				case KEY_DC:
@@ -3038,7 +3044,7 @@ void SEntry::setCDKEntryValue(string newValue)
 	/* OK, erase the old value, and copy in the new value. */
 	efld=newValue;
 	//			if (maxlen>efld.length()) efld.resize(maxlen);
-	this->settoend();
+	settoend();
 }
 /*
 void SEntry::setCDKEntryValue(const char *newValue)
@@ -3088,8 +3094,35 @@ void SEntry::setCDKEntry(
 void SEntry::settoend()
 {
   screenCol=sbuch=leftChar=lbuch=0;
-  for(int i=efld.length();i;) {
-    --i;
+	vector<size_t> sColvon;
+	for(size_t pos=0;pos<efld.length();pos++) {
+	  sColvon.push_back(pos);
+		pos+=isSonder(efld[pos]);
+	}
+	screenCol=efld.length();
+	const long diff{(long)sColvon.size()-(long)fieldWidth+1};
+	if (diff<=0) {
+		sbuch=sColvon.size();
+		if (efld.length()>=maxlen) {
+			sbuch--;
+			screenCol=sColvon[sbuch];
+		}
+	} else {
+		lbuch=diff;
+		sbuch=fieldWidth-1;
+		leftChar=sColvon[diff];
+		screenCol-=leftChar;
+		if (efld.length()>=maxlen) {
+			leftChar++;
+			lbuch++;
+			screenCol--;
+			sbuch--;
+		}
+	}
+	/*
+		 if ((lbuch=fieldWidth-1
+		 for(int i=efld.length();i;) {
+		 --i;
     if (sbuch<fieldWidth) {
       screenCol++;
 			sbuch+=1-isSonder(efld[i]);
@@ -3100,12 +3133,14 @@ void SEntry::settoend()
       // if (!isSonder(efld[i])) lbuch++; // ((unsigned char)efld[i]!=194 && (unsigned char)efld[i]!=195&& (unsigned char)efld[i]!=226) lbuch++;
     }
   }
+	// Cursor rechts des letzten Buchstabens setzen
   if (sbuch>=fieldWidth && (sbuch+lbuch<maxlen)) {
     leftChar++;
 		lbuch++;
     screenCol--;
 		sbuch--;
   }
+	*/
 }
 
 /*
@@ -3517,10 +3552,10 @@ int SAlphalist::getCDKAlphalistCurrentItem()
 
 void SAlphalist::setCDKAlphalistCurrentItem(int item)
 {
-	 if (plist.size()) {
-      scrollField->setCDKScrollCurrent(item);
-			entryField->setCDKEntryValue(*next(plist.begin(),item));
-   }
+	if (plist.size()) {
+		scrollField->setCDKScrollCurrent(item);
+		entryField->setCDKEntryValue(*next(plist.begin(),item));
+	}
 }
 
 void SScroll::setCDKScrollCurrent(int item)
@@ -3646,19 +3681,19 @@ static int adjustAlphalistCB(EObjectType objectType GCC_UNUSED, void
 		chtype key)
 {
 	/* *INDENT-EQLS* */
-   SAlphalist *alphalist = (SAlphalist *)clientData;
-   SScroll *scrollp      = alphalist->scrollField;
-   SEntry *entry         = alphalist->entryField;
-   if (scrollp->listSize > 0) {
-      /* Adjust the scrolling list. */
-      alphalist->injectMyScroller(key);
-      /* Set the value in the entry field. */
-      entry->setCDKEntryValue(scrollp->pitem[scrollp->currentItem].chtype2Char());
-      entry->drawObj(alphalist->obbox);
-      return TRUE;
-   }
-   Beep();
-   return FALSE;
+	SAlphalist *alphalist = (SAlphalist *)clientData;
+	SScroll *scrollp      = alphalist->scrollField;
+	SEntry *entry         = alphalist->entryField;
+	if (scrollp->listSize > 0) {
+		/* Adjust the scrolling list. */
+		alphalist->injectMyScroller(key);
+		/* Set the value in the entry field. */
+		entry->setCDKEntryValue(scrollp->pitem[scrollp->currentItem].chtype2Char());
+		entry->drawObj(alphalist->obbox);
+		return TRUE;
+	}
+	Beep();
+	return FALSE;
 }
 
 /*
