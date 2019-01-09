@@ -2297,38 +2297,38 @@ void SEntry::schreibl(chtype character)
 		rupos++;
 		mvwprintw(screen->window,rupos % 40,125,"                                                                  ");
 		if (sbuch != fieldWidth - 1) {
-      screenCol++;
-//      if (!obuml) sbuch++;
+			screenCol++;
+			//      if (!obuml) sbuch++;
 			sbuch+=1-obuml;
-    } else {
-      /* Update the character pointer. */
-//			efld.resize(slen+1);
-//      efld[slen] =(char)plainchar;
-//			efld+=(char)plainchar;
-//			if (obuml) {
-//				screenCol+=obuml;
-//			} else {
-        /* Do not update the pointer if it's the last character */
-//        if (slen + 1 < maxlen) {
-					const int wieweit{isSonder(efld[leftChar])};
-//					leftChar+=wieweit;
-//					screenCol-=wieweit;
-					if (!altobuml && uraltobuml!=2) { // nur beim ersten angegebenen Durchlauf leftChar und lbuch erhöhen
-						leftChar+=1+wieweit;
-						screenCol-=1+wieweit;
-						lbuch++;
-					}
-					screenCol++;
-//        }
-//      }
-    }
-    /* Update the entry field. */
-    if (!obuml&&altobuml!=2) {
-      zeichneFeld();
-    }
-  }
+		} else {
+			/* Update the character pointer. */
+			//			efld.resize(slen+1);
+			//      efld[slen] =(char)plainchar;
+			//			efld+=(char)plainchar;
+			//			if (obuml) {
+			//				screenCol+=obuml;
+			//			} else {
+			/* Do not update the pointer if it's the last character */
+			//        if (slen + 1 < maxlen) {
+			const int wieweit{isSonder(efld[leftChar])};
+			//					leftChar+=wieweit;
+			//					screenCol-=wieweit;
+			if (!altobuml && uraltobuml!=2) { // nur beim ersten angegebenen Durchlauf leftChar und lbuch erhöhen
+				leftChar+=1+wieweit;
+				screenCol-=1+wieweit;
+				lbuch++;
+			}
+			screenCol++;
+			//        }
+			//      }
+		}
+		/* Update the entry field. */
+		if (!obuml&&altobuml!=2) {
+			zeichneFeld();
+		}
+	}
 	uraltobuml=altobuml;
-  altobuml=obuml;
+	altobuml=obuml;
 }
 
 /*
@@ -2736,34 +2736,6 @@ void SEntry::drawCDKEntry(bool Box)
 	this->zeichneFeld();
 }
 
-void SEntry::keyright()
-{
-	const size_t currPos = screenCol + leftChar;
-	const size_t efldLength=efld.length();
-	if (currPos >= efldLength || currPos>(size_t)maxlen) {
-		Beep();
-	} else if (sbuch == fieldWidth - 1) {
-		/* Scroll to the right. */
-		const int wieSonderleft{isSonder(efld[leftChar])};
-		if (wieSonderleft) { // (efld[leftChar]==-61 || efld[leftChar]==-62|| efld[leftChar]==-30)
-			screenCol--;
-			leftChar++;
-			if (wieSonderleft==2) {
-				screenCol--;
-				leftChar++;
-			}
-		}
-		leftChar++;
-		lbuch++;
-		screenCol+=isSonder(efld[currPos]);
-		zeichneFeld();
-	} else {
-		/* Move right. */
-		wmove(fieldWin, 0, ++sbuch);
-		screenCol++;
-		screenCol+=isSonder(efld[currPos]);
-	}
-}
 /*
  * This injects a single character into the widget.
  */
@@ -2858,7 +2830,29 @@ int SEntry::injectSEntry(chtype input)
 					}
 					break;
 				case KEY_RIGHT:
-					keyright();
+					if (currPos >= efldLength || currPos>(size_t)maxlen) {
+						Beep();
+					} else if (sbuch == fieldWidth - 1) {
+						/* Scroll to the right. */
+						const int wieSonderleft{isSonder(efld[leftChar])};
+						if (wieSonderleft) { // (efld[leftChar]==-61 || efld[leftChar]==-62|| efld[leftChar]==-30)
+							screenCol--;
+							leftChar++;
+							if (wieSonderleft==2) {
+								screenCol--;
+								leftChar++;
+							}
+						}
+						leftChar++;
+						lbuch++;
+						screenCol+=isSonder(efld[currPos]);
+						zeichneFeld();
+					} else {
+						/* Move right. */
+						wmove(fieldWin, 0, ++sbuch);
+						screenCol++;
+						screenCol+=isSonder(efld[currPos]);
+					}
 					break;
 				case KEY_BACKSPACE:
 				case KEY_DC:
@@ -3113,10 +3107,10 @@ void SEntry::settoend()
 		leftChar=sColvon[diff];
 		screenCol-=leftChar;
 		if (efld.length()>=maxlen) {
-			leftChar++;
-			lbuch++;
-			screenCol--;
-			sbuch--;
+			leftChar--;
+			lbuch--;
+			screenCol++;
+			sbuch++;
 		}
 	}
 	/*

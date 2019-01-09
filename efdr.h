@@ -811,7 +811,6 @@ struct SEntry:GObj
    int		boxWidth;
    int		boxHeight;
    void settoend(); // GSchade
-	 void keyright();
 	 void schreibl(chtype); // GSchade, callbackfn
    void zeichneFeld(); // GSchade
 	 void setCDKEntry(/*const char **/std::string& value, int min, int max, bool Box GCC_UNUSED);
